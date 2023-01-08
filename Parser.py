@@ -24,7 +24,7 @@ class Parser:
     """
 
     def program(self):
-        return self.numeric_literal()
+        return {'type': 'Program', 'body': self.numeric_literal()}
 
     def numeric_literal(self):
         return {
