@@ -1,4 +1,7 @@
 # Recursive descent implementation.
+from util import util
+
+
 class Parser:
 
     def __init__(self):
@@ -29,19 +32,7 @@ class Parser:
     def numeric_literal(self):
         return {
             'type': 'NumericLiteral',
-            'value': self.number(self._string)
+            'value': util.number(self._string)
         }
 
-    def number(self, x):
-        # it may be already int or float
-        if isinstance(x, (int, float)):
-            return x
-        # all int like strings can be converted to float so int tries first
-        try:
-            return int(x)
-        except (TypeError, ValueError):
-            pass
-        try:
-            return float(x)
-        except (TypeError, ValueError):
-            return None
+
