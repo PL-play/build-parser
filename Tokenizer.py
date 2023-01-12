@@ -1,6 +1,6 @@
 # Tokenizer class.
 # Lazy pulls a token from a stream.
-from util.util import number
+import re
 
 
 class Tokenizer:
@@ -15,26 +15,22 @@ class Tokenizer:
         """
         if not self.has_more_tokens():
             return None
+
         string = self._string[self._cursor:]
-        if number(string[0]) is not None:
-            number_token = ''
-            while not self.is_eof() and number(string[self._cursor]) is not None:
-                number_token = number_token + string[self._cursor]
-                self._cursor += 1
+        match = r'^\d+'
+        m = re.search(match, string)
+        if m:
+            number_token = m.group()
+            self._cursor += len(number_token)
             return {
                 'type': 'NUMBER',
                 'value': number_token
             }
-
-        if string[0] == '"':
-            string_token = ""
-            string_token += string[self._cursor]
-            self._cursor += 1
-            while not self.is_eof() and string[self._cursor] != '"':
-                string_token = string_token + string[self._cursor]
-                self._cursor += 1
-            string_token += string[self._cursor]
-            self._cursor += 1
+        match = r'^"[^"]*"'
+        m = re.search(match, string)
+        if m:
+            string_token = m.group()
+            self._cursor += len(string_token)
             return {
                 'type': 'STRING',
                 'value': string_token
