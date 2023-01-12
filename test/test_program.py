@@ -42,3 +42,19 @@ class ParserTest(unittest.TestCase):
     def test7(self):
         parser = Parser()
         print(parser.parse('     42     '))
+
+    def test8(self):
+        parser = Parser()
+        print(parser.parse('''
+            // comment
+            42
+        '''))
+
+    def test9(self):
+        parser = Parser()
+        print(parser.parse('''
+               /*
+               * comment
+               */
+               42
+           '''))
