@@ -17,22 +17,25 @@ class Parser:
         self._string = string
         return self.program()
 
-    """
-    Main entry point.
-
-    Program
-      : NumericLiteral
-      ;
-
-    """
-
     def program(self):
+        """
+        Main entry point.
+
+        Program
+            : NumericLiteral
+            ;
+
+        """
         return {'type': 'Program', 'body': self.numeric_literal()}
 
     def numeric_literal(self):
+        """
+        NumericalLiteral
+            : Number
+            ;
+        :return:
+        """
         return {
             'type': 'NumericLiteral',
             'value': util.number(self._string)
         }
-
-
