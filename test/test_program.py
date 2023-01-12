@@ -11,7 +11,7 @@ class ParserTest(unittest.TestCase):
 
     def test2(self):
         parser = Parser()
-        print(parser.parse('"hello"'))
+        print(parser.parse('\'hello\''))
 
     def test3(self):
         match = r'^\d+'
@@ -30,3 +30,15 @@ class ParserTest(unittest.TestCase):
             print(m.group())
         else:
             print('not found')
+
+    def test5(self):
+        parser = Parser()
+        print(parser.parse('   \'hello\'   '))
+
+    def test6(self):
+        parser = Parser()
+        print(parser.parse('  "   42  "   '))
+
+    def test7(self):
+        parser = Parser()
+        print(parser.parse('     42     '))
