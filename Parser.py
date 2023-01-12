@@ -1,11 +1,14 @@
 # Recursive descent implementation.
-from util import util
+from Tokenizer import Tokenizer
+from util.util import number
 
 
 class Parser:
 
     def __init__(self):
         self._string = None
+        self._tokenizer = None
+        self._lookahead = None
 
     def parse(self, string):
         """
@@ -15,6 +18,12 @@ class Parser:
         :return: AST
         """
         self._string = string
+        self._tokenizer = Tokenizer(self._string)
+        # Prime the tokenizer to obtain the first token which is our lookahead.
+        # The lookahead is used for predictive parsing.
+        self._lookahead = self._tokenizer.get_next_token()
+
+        # Parse recursively starting from the main entry point.
         return self.program()
 
     def program(self):
@@ -35,7 +44,20 @@ class Parser:
             ;
         :return:
         """
+        token = self._eat('NUMBER')
         return {
             'type': 'NumericLiteral',
-            'value': util.number(self._string)
+            'value': number(token.get('value'))
         }
+
+    # Expects a token from given type
+    def _eat(self, token_type):
+        token = self._lookahead
+        if token is None:
+            raise SyntaxError(f'Unexpected end of input,expected: {token_type}')
+        if token.get('type') != token_type:
+            raise SyntaxError(f'Unexpected token:{token.get("value")},expected:{token_type}')
+
+        # Advance to next token
+        self._lookahead = self._tokenizer.get_next_token()
+        return token

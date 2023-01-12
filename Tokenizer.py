@@ -18,7 +18,7 @@ class Tokenizer:
         string = self._string[self._cursor:]
         if number(string[0]) is not None:
             number_token = ''
-            while number(string[self._cursor]) is not None:
+            while len(string) > self._cursor and number(string[self._cursor]) is not None:
                 number_token = number_token + string[self._cursor]
                 self._cursor += 1
             return {
