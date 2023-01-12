@@ -58,3 +58,13 @@ class ParserTest(unittest.TestCase):
                */
                42
            '''))
+
+    def test10(self):
+        parser = Parser()
+        self.assertDictEqual({'type': 'Program', 'body': {'type': 'NumericLiteral', 'value': 42}}, parser.parse('''
+               /*
+               * comment
+               */
+               42
+           '''))
+        
