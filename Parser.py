@@ -35,19 +35,48 @@ class Parser:
             ;
 
         """
-        return {'type': 'Program', 'body': self.numeric_literal()}
+        return {"type": "Program", "body": self.literal()}
+
+    def literal(self):
+        """
+        Literal
+            : NumberLiteral
+            | StringLiteral
+            ;
+        :return:
+        """
+        token_type = self._lookahead.get('type')
+        if token_type == 'NUMBER':
+            return self.numeric_literal()
+        elif token_type == 'STRING':
+            return self.string_literal()
+        else:
+            raise SyntaxError('Literal:unexpected literal production')
+
+    def string_literal(self):
+        """
+        StringLiteral
+            : STRING
+            ;
+        :return:
+        """
+        token = self._eat('STRING')
+        return {
+            "type": "StringLiteral",
+            "value": token.get('value')[1:-1]
+        }
 
     def numeric_literal(self):
         """
         NumericalLiteral
-            : Number
+            : NUMBER
             ;
         :return:
         """
         token = self._eat('NUMBER')
         return {
-            'type': 'NumericLiteral',
-            'value': number(token.get('value'))
+            "type": "NumericLiteral",
+            "value": number(token.get('value'))
         }
 
     # Expects a token from given type
