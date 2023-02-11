@@ -48,39 +48,36 @@ def is_non_terminal(p):
     else:
         print(f'is_non_terminal {type(p)} not supported.')
 
-
 def first(Grammar, Non_terminals):
     cache = {}
 
-    def _first(G, non_terminal):
-        if cache.get(non_terminal, None) is not None:
-            return cache.get(non_terminal)
-        print(f"--- get first of {non_terminal}")
-        first_set = set()
-        for production in G[non_terminal]:
-            # X -> a，a为终结符，将a加入first(X)
-            if is_terminal(production[0]):
-                first_set.add(production[0])
-                cache[non_terminal] = first_set
-                print(f"add cache: {cache}")
-            # X -> εY1Y2...Yk，将ε加入first(X),同时将first(Y1Y2...Yk)加入first(X)
-            elif is_epsilon(production[0]):
-                first_set.add(production[0])
-                if len(production) > 1:
-                    first_set |= _first(G, production[1])
-                cache[non_terminal] = first_set
-                print(f"add cache: {cache}")
-            # X -> C,C为非终结符，first(X) = first(C)
-            elif is_non_terminal(production[0]):
-                first_set = _first(G, production[0])
-                cache[non_terminal] = first_set
-                print(f"add cache: {cache}")
-        return first_set
-
     for nt in Non_terminals:
-        _first(Grammar, nt)
+        get_first(Grammar, nt, cache)
 
     return cache
+
+
+def get_first(G, non_terminal, cache):
+    if cache.get(non_terminal, None) is not None:
+        return cache.get(non_terminal)
+    print(f"--- get first of {non_terminal}")
+    first_set = set()
+    for production in G[non_terminal]:
+        if is_terminal(production[0]):
+            first_set.add(production[0])
+            cache[non_terminal] = first_set
+            print(f"add cache of {non_terminal}: {cache}")
+        elif is_epsilon(production[0]):
+            first_set.add(production[0])
+            if len(production) > 1:
+                first_set |= get_first(G, production[1], cache)
+            cache[non_terminal] = first_set
+            print(f"add cache of {non_terminal}: {cache}")
+        elif is_non_terminal(production[0]):
+            first_set = get_first(G, production[0], cache)
+            cache[non_terminal] = first_set
+            print(f"add cache of {non_terminal}: {cache}")
+    return first_set
 
 
 if __name__ == '__main__':
