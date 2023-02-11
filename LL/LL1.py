@@ -55,7 +55,7 @@ def first(Grammar, Non_terminals):
     def _first(G, non_terminal):
         if cache.get(non_terminal, None) is not None:
             return cache.get(non_terminal)
-        print(f"get first of {non_terminal}")
+        print(f"--- get first of {non_terminal}")
         first_set = set()
         for production in G[non_terminal]:
             # X -> a，a为终结符，将a加入first(X)
