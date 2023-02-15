@@ -17,11 +17,11 @@ eof = '$'
 
 """
 grammar = {
-    'E': [('T', "E'")],
-    "E'": [('+', 'T', "E'"), 'ε'],
-    'T': [('F', "T'")],
-    "T'": [('*', 'F', "T'"), 'ε'],
-    'F': [('number',), '(E)']
+    'E': [['T', "E'"]],
+    "E'": [['+', 'T', "E'"], 'ε'],
+    'T': [['F', "T'"]],
+    "T'": [['*', 'F', "T'"], 'ε'],
+    'F': [['number'], '(E)']
 
 }
 
@@ -176,7 +176,8 @@ def parsing_table(G, first_set, follow_set):
                 print(f"    first symbol {first_symbol} is epsilon, predict set the follow set of {nt}: {predict_set}")
             else:
                 predict_set = first_set[first_symbol]
-                print(f"    first symbol {first_symbol} is not epsilon, predict set is the first set of first symbol {first_symbol}: {predict_set}")
+                print(
+                    f"    first symbol {first_symbol} is not epsilon, predict set is the first set of first symbol {first_symbol}: {predict_set}")
             for symbol in predict_set:
                 if symbol in table[nt]:
                     print(
@@ -190,6 +191,34 @@ def parsing_table(G, first_set, follow_set):
     return table
 
 
+def parse(start_symbol, parsing_table, input_string):
+    input_list = input_string.split()
+    input_list.append(eof)
+    stack = [eof, start_symbol]
+    i = 0
+    while len(stack) > 0:
+        top = stack.pop()
+        # Rule1: if a non-terminal on top of the stack,replace it with its RHS.
+        # T[non-terminal,lookahead] = production
+        if is_non_terminal(top):
+            production = parsing_table[top].get(input_list[i], None)
+            if production is None:
+                print(f"no production for table[{top},{input_list[i]}], parse error!")
+                return False
+            for symbol in reversed(production):
+                if not is_epsilon(symbol):
+                    stack.append(symbol)
+        # Rule2: if a terminal on top of the stack,pop it and advance string cursor
+        elif is_terminal(top):
+            if top == input_list[i]:
+                i += 1
+            else:
+                print(f"expect \"{top}\" but get \"{input_list[i]}\"")
+                return False
+
+    return True
+
+
 if __name__ == '__main__':
     first_set = first(grammar, non_terminal)
     print('first set:', first_set)
@@ -198,3 +227,6 @@ if __name__ == '__main__':
 
     table = parsing_table(grammar, first_set, follow_set)
     print('parsing table', table)
+
+    accepted = parse(start_symbol, table, '( number + number * number )')
+    print(accepted)
