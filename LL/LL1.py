@@ -72,6 +72,21 @@ def first(Grammar, Non_terminals):
 
 
 def get_first(G, non_terminal, cache):
+    """
+    1) If x is terminal, then FIRST(x)={x}
+
+    2) If X→ ε is production, then add ε to FIRST(X)
+
+    3) If X is a non-terminal and X → PQR then FIRST(X)=FIRST(P)
+
+       If FIRST(P) contains ε, then
+
+       FIRST(X) = (FIRST(P) – {ε}) U FIRST(QR)
+    :param G:
+    :param non_terminal:
+    :param cache:
+    :return:
+    """
     if cache.get(non_terminal, None) is not None:
         return cache.get(non_terminal)
     first_set = set()
@@ -104,6 +119,20 @@ def follow(Grammar, Non_terminals, first_set):
 
 def get_follow(G, p, first_set, follow_set):
     """
+    1) For Start symbol, place $ in FOLLOW(S)
+
+    2) If A→ α B, then FOLLOW(B) = FOLLOW(A)
+
+    3) If A→ α B β, then
+
+      If ε not in FIRST(β),
+
+           FOLLOW(B) = FIRST(β)
+
+      else do,
+
+           FOLLOW(B) = (FIRST(β)-{ε}) U FOLLOW(A)
+
     一个文法符号的FOLLOW集就是可能出现在这个文法符号后面的终结符.
 
     比如 S->ABaD, 那么FOLLOW(B)的值就是a。
@@ -136,30 +165,46 @@ def get_follow(G, p, first_set, follow_set):
         f.add(eof)
     for nt, prod_list in G.items():
         for prod in prod_list:
-            if p in prod:
-                i = prod.index(p)
-                # A -> aB, follow(B) = follow(A)
-                if i == len(prod) - 1:
-                    # prevent infinite recursion of like E -> aE
-                    if nt != p:
-                        f |= get_follow(G, nt, first_set, follow_set)
-                else:
-                    # A -> Bc, put c in follow(B)
-                    if is_terminal(prod[i + 1]):
-                        f.add(prod[i + 1])
-                    # A -> aBC, put first(C) - ε to follow(B)
-                    elif is_non_terminal(prod[i + 1]):
-                        next_first = copy.deepcopy(first_set[prod[i + 1]])
-                        if epsilon in next_first:
-                            next_first.remove(epsilon)
-                            if nt != p:
-                                f |= get_follow(G, prod[i + 1], first_set, follow_set)
-                        f |= next_first
+            if p not in prod:
+                continue
+            i = prod.index(p)
+            # A -> aB, follow(B) = follow(A)
+            if i == len(prod) - 1:
+                # prevent infinite recursion of like E -> aE
+                if nt != p:
+                    f |= get_follow(G, nt, first_set, follow_set)
+            else:
+                # A -> Bc, put c in follow(B)
+                if is_terminal(prod[i + 1]):
+                    f.add(prod[i + 1])
+                # A -> aBC, put first(C) - ε to follow(B)
+                elif is_non_terminal(prod[i + 1]):
+                    next_first = copy.deepcopy(first_set[prod[i + 1]])
+                    if epsilon in next_first:
+                        next_first.remove(epsilon)
+                        if nt != p:
+                            f |= get_follow(G, prod[i + 1], first_set, follow_set)
+                    f |= next_first
+
     follow_set[p] = f
     return f
 
 
 def parsing_table(G, first_set, follow_set):
+    """
+    Step 1: For each production A → α , of the given grammar perform Step 2 and Step 3.
+
+    Step 2: For each terminal symbol ‘a’ in FIRST(α), ADD A → α in table T[A,a], where ‘A’ determines row & ‘a’ determines column.
+
+    Step 3:  If ε is present in FIRST(α) then find FOLLOW(A), ADD A → ε, at all columns ‘b’, where ‘b’ is FOLLOW(A).  (T[A,b])
+
+    Step 4: If ε is in FIRST(α) and $ is the FOLLOW(A), ADD A → α to T[A,$].
+
+    :param G:
+    :param first_set:
+    :param follow_set:
+    :return:
+    """
     table = dict()
     for nt, production_rules in G.items():
         table[nt] = dict()
@@ -196,6 +241,7 @@ def parse(start_symbol, parsing_table, input_string):
     input_list.append(eof)
     stack = [eof, start_symbol]
     i = 0
+    ast_stack = [{}]
     while len(stack) > 0:
         top = stack.pop()
         # Rule1: if a non-terminal on top of the stack,replace it with its RHS.
@@ -228,5 +274,5 @@ if __name__ == '__main__':
     table = parsing_table(grammar, first_set, follow_set)
     print('parsing table', table)
 
-    accepted = parse(start_symbol, table, '( number + number * number )')
+    accepted = parse(start_symbol, table, '( number +  number )')
     print(accepted)
