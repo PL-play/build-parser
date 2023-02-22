@@ -21,15 +21,21 @@ grammar = {
     "E'": [['+', 'T', "E'"], 'ε'],
     'T': [['F', "T'"]],
     "T'": [['*', 'F', "T'"], 'ε'],
-    'F': [['number'], '(E)']
+    'F': [['number'], ['(', 'E', ')']]
 
 }
+g = {'E': [['T', "E'"], ['ε']],
+     "E'": [['+', 'T', "E'"], ['ε']],
+     'T': [['F', "T'"], ['ε']],
+     "T'": [['*', 'F', "T'"], ['ε']],
+     'F': [['number'], ['(', 'E', ')']],
+     }
 
 
 def is_terminal(p):
     if isinstance(p, str):
         return p in terminal
-    elif isinstance(p, (tuple, list)):
+    elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] in terminal
     else:
         print(f'is_terminal {type(p)} not supported.')
@@ -38,7 +44,7 @@ def is_terminal(p):
 def is_epsilon(p):
     if isinstance(p, str):
         return p == epsilon
-    elif isinstance(p, (tuple, list)):
+    elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] == epsilon
     else:
         print(f'is_epsilon {type(p)} not supported.')
@@ -47,7 +53,7 @@ def is_epsilon(p):
 def is_non_terminal(p):
     if isinstance(p, str):
         return p in non_terminal
-    elif isinstance(p, (tuple, list)):
+    elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] in non_terminal
     else:
         print(f'is_non_terminal {type(p)} not supported.')
@@ -56,7 +62,7 @@ def is_non_terminal(p):
 def is_start(p):
     if isinstance(p, str):
         return p == start_symbol
-    elif isinstance(p, (tuple, list)):
+    elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] == start_symbol
     else:
         print(f'is_start {type(p)} not supported.')
@@ -265,6 +271,31 @@ def parse(start_symbol, parsing_table, input_string):
     return True
 
 
+def eliminateLeftRecursion(grammar):
+    # Step 1: Identify left-recursive non-terminals and create new non-terminals
+    new_rules = {}
+    for non_terminal, rules in grammar.items():
+        left_recursive = [rule for rule in rules if is_non_terminal(rule[0]) and rule[0] == non_terminal]
+        non_left_recursive = [rule for rule in rules if not is_non_terminal(rule[0]) or rule[0] != non_terminal]
+        if len(left_recursive) > 0:
+            new_non_terminal = non_terminal + "'"
+            new_rules[new_non_terminal] = []
+            for rule in left_recursive:
+                new_rules[new_non_terminal].append(rule[1:] + [new_non_terminal])
+            for rule in non_left_recursive:
+                new_rules[non_terminal] = new_rules.get(non_terminal, []) + [
+                    rule if isinstance(rule, (list, tuple)) else [rule] + [new_non_terminal]]
+
+    # Step 2: Update the grammar with the new non-terminals
+    for non_terminal, rules in new_rules.items():
+        if non_terminal in rules[0]:
+            # Add an epsilon rule to the new non-terminal
+            rules.append(['ε'])
+        grammar[non_terminal] = rules
+
+    return grammar
+
+
 if __name__ == '__main__':
     first_set = first(grammar, non_terminal)
     print('first set:', first_set)
@@ -274,5 +305,5 @@ if __name__ == '__main__':
     table = parsing_table(grammar, first_set, follow_set)
     print('parsing table', table)
 
-    accepted = parse(start_symbol, table, '( number +  number )')
+    accepted = parse(start_symbol, table, '( number * number )')
     print(accepted)
