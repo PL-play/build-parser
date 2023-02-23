@@ -1,6 +1,22 @@
 import copy
 
-terminal = {'+', '*', '(', ')', 'number'}
+from LL.Lexer import Lexer
+
+token_exprs = [
+    (r'[ \n\t]+', None),
+    (r'#[^\n]*', None),
+    (r'[-]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?', 'NUMBER'),
+    # (r'[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?', 'NUMBER'),
+    (r'\(', '('),
+    (r'\)', ')'),
+    (r'\+', '+'),
+    (r'\-', '-'),
+    (r'\*', '*'),
+    (r'\/', '/'),
+    (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
+]
+
+terminal = {'+', '*', '(', ')', 'NUMBER'}
 non_terminal = {'E', "E'", 'T', "T'", 'F'}
 epsilon = 'ε'
 start_symbol = 'E'
@@ -21,7 +37,7 @@ grammar = {
     "E'": [['+', 'T', "E'"], 'ε'],
     'T': [['F', "T'"]],
     "T'": [['*', 'F', "T'"], 'ε'],
-    'F': [['number'], ['(', 'E', ')']]
+    'F': [['NUMBER', ], ['(', 'E', ')']]
 
 }
 
@@ -236,7 +252,7 @@ def parsing_table(G, first_set, follow_set):
     return table
 
 
-def parse(start_symbol, parsing_table, input_string):
+def parse(start_symbol, parsing_table, input_list):
     """
     https://stackoverflow.com/questions/54706455/ll-top-down-parser-from-cst-to-ast/54751222#54751222
 
@@ -263,11 +279,9 @@ def parse(start_symbol, parsing_table, input_string):
     :param input_string:
     :return:
     """
-    input_list = input_string.split()
     input_list.append(eof)
     stack = [eof, start_symbol]
     i = 0
-    ast_stack = []  # stack to store AST nodes
 
     while len(stack) > 0:
         top = stack.pop()
@@ -328,5 +342,11 @@ if __name__ == '__main__':
     table = parsing_table(grammar, first_set, follow_set)
     print('parsing table', table)
 
-    accepted = parse(start_symbol, table, '( number * number )')
+    text = '(3 + 4 )*(4+1)'
+    lexer = Lexer(text, token_exprs)
+    inputs = []
+    while lexer.has_next():
+        inputs.append(lexer.next().type)
+    print(inputs)
+    accepted = parse(start_symbol, table, inputs)
     print(accepted)
