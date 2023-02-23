@@ -25,13 +25,14 @@ grammar = {
 
 }
 
+
 def is_terminal(p):
     if isinstance(p, str):
         return p in terminal
     elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] in terminal
     else:
-        print(f'is_terminal {type(p)} not supported.')
+        raise AssertionError(f'is_terminal {type(p)} not supported.')
 
 
 def is_epsilon(p):
@@ -40,7 +41,7 @@ def is_epsilon(p):
     elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] == epsilon
     else:
-        print(f'is_epsilon {type(p)} not supported.')
+        raise AssertionError(f'is_epsilon {type(p)} not supported.')
 
 
 def is_non_terminal(p):
@@ -49,7 +50,7 @@ def is_non_terminal(p):
     elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] in non_terminal
     else:
-        print(f'is_non_terminal {type(p)} not supported.')
+        raise AssertionError(f'is_non_terminal {type(p)} not supported.')
 
 
 def is_start(p):
@@ -58,7 +59,7 @@ def is_start(p):
     elif isinstance(p, (tuple, list)) and len(p) == 1:
         return p[0] == start_symbol
     else:
-        print(f'is_start {type(p)} not supported.')
+        raise AssertionError(f'is_start {type(p)} not supported.')
 
 
 def first(Grammar, Non_terminals):
@@ -236,11 +237,38 @@ def parsing_table(G, first_set, follow_set):
 
 
 def parse(start_symbol, parsing_table, input_string):
+    """
+    https://stackoverflow.com/questions/54706455/ll-top-down-parser-from-cst-to-ast/54751222#54751222
+
+    So that's probably the mechanism of choice for building syntax trees from top-down parsers as well.
+    We add a "reduction" marker to the end of every right-hand side. Since the marker goes at the end of
+    the right-hand side, so it is pushed first.
+
+    We also need a value stack, to record the AST nodes (or semantic values) being constructed.
+    In the basic algorithm, we now have one more case. We start by popping the top of the parser stack,
+    and then examine this object:
+
+    * The top of the parser stack was a terminal. If the current input symbol is the same terminal, we remove the
+      input symbol from the input, and push it (or its semantic value) onto the value stack.
+    * The top of the parser stack was a marker. The associated reduction action is triggered, which will create
+      the new AST node by popping an appropriate number of values from the value stack and combining them into a new
+      AST node which is then pushed onto the value stack. (As a special case, the marker action for the augmented
+      start symbol's unique production S' -> S $ causes the parse to be accepted, returning the (only) value in
+      the value stack as the AST.)
+    * The top of the parser stack was a non-terminal. We then identify the appropriate right-hand side using the
+      current input symbol, and push that right-hand side (right-to-left) onto the parser stack.
+
+    :param start_symbol:
+    :param parsing_table:
+    :param input_string:
+    :return:
+    """
     input_list = input_string.split()
     input_list.append(eof)
     stack = [eof, start_symbol]
     i = 0
-    ast_stack = [{}]
+    ast_stack = []  # stack to store AST nodes
+
     while len(stack) > 0:
         top = stack.pop()
         # Rule1: if a non-terminal on top of the stack,replace it with its RHS.
@@ -250,6 +278,7 @@ def parse(start_symbol, parsing_table, input_string):
             if production is None:
                 print(f"no production for table[{top},{input_list[i]}], parse error!")
                 return False
+
             for symbol in reversed(production):
                 if not is_epsilon(symbol):
                     stack.append(symbol)
@@ -257,6 +286,7 @@ def parse(start_symbol, parsing_table, input_string):
         elif is_terminal(top):
             if top == input_list[i]:
                 i += 1
+
             else:
                 print(f"expect \"{top}\" but get \"{input_list[i]}\"")
                 return False
