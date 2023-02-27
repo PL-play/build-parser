@@ -1,0 +1,57 @@
+%%
+\s+     /**/
+\d+     return 'NUMBER'
+[+\-]   return 'ADDITIVE_OPERATOR'
+[*/]    return 'MULTIPLICATIVE_OPERATOR'
+\(      return 'OPEN_PARENTHESIS'
+\)      return 'CLOSE_PARENTHESIS'
+/lex
+
+%{
+def BinaryExpression(left,op,right):
+    return {
+        'type':'BinaryExpression',
+        'op':op,
+        'left':left,
+        'right':right
+    }
+%}
+
+%%
+Expression
+    : AdditiveExpression
+    ;
+
+AdditiveExpression:
+    : AdditiveExpression ADDITIVE_OPERATOR MultiplicativeExpression
+    {$$ = BinaryExpression($1,$2,$3)}
+    | MultiplicativeExpression
+    ;
+
+MultiplicativeExpression:
+    : MultiplicativeExpression MULTIPLICATIVE_OPERATOR PrimaryExpression
+    {$$ = BinaryExpression($1,$2,$3)}
+    | PrimaryExpression;
+
+PrimaryExpression
+    : Literal
+    | ParenthesizedExpression
+    ;
+
+Literal
+    : NumericLiteral
+    {
+        $$ = {
+            type: 'NumericLiteral'
+            value: Number($1)
+        }
+    }
+    ;
+
+NumericLiteral
+    : NUMBER
+    ;
+
+ParenthesizedExpression
+    : OPEN_PARENTHESIS Expression CLOSE_PARENTHESIS {$$ = $2}
+    ;

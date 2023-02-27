@@ -67,7 +67,7 @@ class LL1Test(unittest.TestCase):
         table = parsing_table(grammar, first_set, follow_set)
         print('parsing table', table)
 
-        text = '(3 + 4 )*(4+1)'
+        text = '2'
         lexer = Lexer(text, token_exprs)
         inputs = []
         while lexer.has_next():
