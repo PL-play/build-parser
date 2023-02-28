@@ -1,3 +1,27 @@
+"""
+BNF:
+ expression : expression + term
+               | expression - term
+               | term
+
+ term : term * factor
+            | term / factor
+            | factor
+
+ factor     : NUMBER
+            | ( expression )
+
+REMOVE LEFT RECURSION
+
+    E -> TE'
+    E' -> +TE'|-TE'|ε
+
+    T -> FT'
+    T' -> *FT'|/FT'|ε
+
+    F -> NUMBER|(E)
+"""
+
 from LL.Lexer import Lexer
 from util.util import number
 
@@ -21,27 +45,7 @@ class ExpressionEvaluator:
             (r'\*', 'MULTIPLY'),
             (r'\/', 'DIVIDE'),
         ]
-        expression : expression + term
-               | expression - term
-               | term
 
-        term       : term * factor
-                   | term / factor
-                   | factor
-
-        factor     : NUMBER
-                   | ( expression )
-
-
-        // ----------
-
-        E -> TE'
-        E' -> +TE'|-TE'|ε
-
-        T -> FT'
-        T' -> *FT'|/FT'|ε
-
-        F -> NUMBER|(E)
         :param string:
         :param token_expr:
         :return:
