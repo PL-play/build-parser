@@ -284,7 +284,6 @@ def parse(start_symbol, parsing_table, input_list):
     i = 0
 
     while len(stack) > 0:
-        print(stack)
         top = stack.pop()
         # Rule1: if a non-terminal on top of the stack,replace it with its RHS.
         # T[non-terminal,lookahead] = production

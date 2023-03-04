@@ -193,6 +193,14 @@ class Item0:
             return eof
         return self.rule[self.pos]
 
+    def __str__(self) -> str:
+        s = [r for r in self.rule]
+        s.insert(self.pos, '⊙')
+        return f"{self.lhs}: {''.join(s)}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class LRState:
     def __init__(self):
@@ -202,8 +210,20 @@ class LRState:
     def add_item(self, item: Item0):
         self.items.append(item)
 
+    def add_items(self, items: list[Item0]):
+        self.items = self.items + items
+
     def set_name(self, name: int):
         self.name = name
+
+    def __str__(self) -> str:
+        s = []
+        for i in self.items:
+            s.append(f"      {str(i)}\n")
+        return f"state {self.name}:\n {' '.join(s)}\n"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 def closure(items: list[Item0], G: dict) -> list[Item0]:
@@ -213,16 +233,15 @@ def closure(items: list[Item0], G: dict) -> list[Item0]:
     :param G:
     :return:
     """
-
-    result = [] + items
-    last_len = 0
-    while last_len != len(result):
-        last_len = len(result)
-        for i in result:
-            nr = i.peek_dot_right()
-            if is_non_terminal(nr):
-                for rule in G[nr]:
-                    result.append(Item0(nr, rule, 0))
+    result = []
+    work_list = [] + items
+    while len(work_list) > 0:
+        item = work_list.pop()
+        result.append(item)
+        next_i = item.peek_dot_right()
+        if is_non_terminal(next_i):
+            for rule in G[next_i]:
+                work_list.append(Item0(next_i, rule, 0))
 
     return result
 
