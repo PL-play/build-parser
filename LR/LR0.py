@@ -188,21 +188,43 @@ class Item0:
         self.rule = rule
         self.pos = pos
 
+    def peek_dot_right(self):
+        if self.pos > len(self.rule) - 1:
+            return eof
+        return self.rule[self.pos]
+
 
 class LRState:
     def __init__(self):
         self.name = 0
         self.items = []
 
+    def add_item(self, item: Item0):
+        self.items.append(item)
 
-def closure(state: LRState, G: dict) -> LRState:
+    def set_name(self, name: int):
+        self.name = name
+
+
+def closure(items: list[Item0], G: dict) -> list[Item0]:
     """
 
     :param state:
     :param G:
     :return:
     """
+
+    result = [] + items
     last_len = 0
+    while last_len != len(result):
+        last_len = len(result)
+        for i in result:
+            nr = i.peek_dot_right()
+            if is_non_terminal(nr):
+                for rule in G[nr]:
+                    result.append(Item0(nr, rule, 0))
+
+    return result
 
 
 if __name__ == '__main__':
