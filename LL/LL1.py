@@ -1,6 +1,6 @@
 import copy
 
-from LL.Lexer import Lexer
+from util.Lexer import Lexer
 
 token_exprs = [
     (r'[ \n\t]+', None),
@@ -40,9 +40,7 @@ grammar = {
     'F': [['NUMBER', ], ['(', 'E', ')']]
 
 }
-semantic_actions = {
 
-}
 
 def is_terminal(p):
     if isinstance(p, str):
@@ -312,65 +310,6 @@ def parse(start_symbol, parsing_table, input_list):
     return True
 
 
-def parse_ast(start_symbol, parsing_table, input_list):
-    input_list.append(eof)
-    stack = [eof, start_symbol]
-    value_stack = []
-    i = 0
-
-    while len(stack) > 0:
-        top = stack.pop()
-        if is_non_terminal(top):
-            production = parsing_table[top].get(input_list[i], None)
-            if production is None:
-                print(f"no production for table[{top},{input_list[i]}], parse error!")
-                return None
-
-            for symbol in reversed(production):
-                if not is_epsilon(symbol):
-                    stack.append(symbol)
-        elif is_terminal(top):
-            if top == input_list[i]:
-                i += 1
-                value_stack.append(top)
-            else:
-                print(f"expect \"{top}\" but get \"{input_list[i]}\"")
-                return None
-        else:
-            # Reduction marker
-            if top == reduction_marker:
-                # Pop the right-hand side symbols from the stack
-                rhs = []
-                while stack[-1] != reduction_marker:
-                    rhs.append(stack.pop())
-                stack.pop()  # Pop the reduction marker
-
-                # Determine the reduction rule to apply
-                non_terminal = stack[-1]
-                production = parsing_table[non_terminal][reduction_marker]
-                rule_len = len(production) - 1
-
-                # Pop the semantic values from the value stack and pass them to the semantic action
-                semantic_values = [value_stack.pop() for _ in range(rule_len)][::-1]
-                ast_node = production.semantic_action(semantic_values)
-
-                # Push the new AST node onto the value stack
-                value_stack.append(ast_node)
-
-                # Push the non-terminal symbol back onto the stack
-                stack.append(non_terminal)
-            else:
-                print(f"unexpected symbol \"{top}\"")
-                return None
-
-    # The only value left on the value stack should be the AST
-    if len(value_stack) == 1:
-        return value_stack[0]
-    else:
-        print("parse error!")
-        return None
-
-
 def eliminateLeftRecursion(grammar):
     # Step 1: Identify left-recursive non-terminals and create new non-terminals
     new_rules = {}
@@ -413,8 +352,3 @@ if __name__ == '__main__':
     print(inputs)
     accepted = parse(start_symbol, table, inputs)
     print(accepted)
-
-    ast, semantic_values = parse_ast(start_symbol, table, inputs)
-
-    print(f"ast: {ast}")
-    print(f"semantic_values: {semantic_values}")

@@ -22,7 +22,7 @@ REMOVE LEFT RECURSION
     F -> NUMBER|(E)
 """
 
-from LL.Lexer import Lexer
+from util.Lexer import Lexer
 from util.util import number
 
 

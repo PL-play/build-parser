@@ -1,7 +1,7 @@
 import unittest
 
 from LL.LL1 import eliminateLeftRecursion, first, follow, parsing_table, parse
-from LL.Lexer import Lexer
+from util.Lexer import Lexer
 
 
 class LL1Test(unittest.TestCase):

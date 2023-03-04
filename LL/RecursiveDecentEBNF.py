@@ -15,7 +15,7 @@ EBNF:
     factor ::= (expr)
            | NUMBER
 """
-from LL.Lexer import Lexer
+from util.Lexer import Lexer
 from util.util import number
 
 
