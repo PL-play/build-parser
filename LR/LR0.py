@@ -249,7 +249,9 @@ class LRState:
 
 def closure(items: list[Item0], G: dict) -> list[Item0]:
     """
-
+     对于某个项集 I,首先把它里面的所有项放到它的闭包CLOSURE(I)中，接着遍历CLOSURE(I)中的每一项。如果遍历到的这一项点号右边恰好是非终结符，
+     把这个非终结符对应的若干产生式，做成“LR(0) 项”（点号放在产生式体最左边），再全部添加到CLOSURE(I)中。反复遍历，直到没有新项被添加到
+     CLOSURE(I)中为止。此时的CLOSURE(I)就叫做“项集I的闭包"
     :param items:
     :param G:
     :return:
@@ -267,6 +269,19 @@ def closure(items: list[Item0], G: dict) -> list[Item0]:
 
 
 def goto(state: LRState, symbol: str, G: dict) -> list[Item0]:
+    """
+    GOTO 函数有两个参数，其中一个是某个项集，另一个是语法中的符号——可以是终结符，也可以是非终结符，还可以是 eof.
+    对于某个项I和语法符号X，要计算GOTO(I, X，可以采用下面的方法:
+    1. 新建一个空项集。
+    2. 遍历项集中所有的条目，确定点号右边是不是 X
+    3. 如果是的话，就把它单抽出来，把点号右移一位，再放到那个空项集里。我们把这些项叫做“内核项”。
+    4. 遍历完之后，返回这个新项集的闭包。我们把闭包中新加入的项叫做“非内核项”。
+
+    :param state:
+    :param symbol:
+    :param G:
+    :return:
+    """
     new_items = []
     for i in state.items:
         if i.peek_dot_right() == symbol:
@@ -284,6 +299,12 @@ def _find_index(states: list[LRState], items: set[Item0]):
 
 
 def canonical_lr0_collection(init_state: LRState, G: dict) -> tuple[list[LRState], dict[tuple:int]]:
+    """
+    到这个语法对应的规范-LR(0) 项集族；这个族中的每一个项集对应 LR(0) 自动机中的一个状态
+    :param init_state:
+    :param G:
+    :return:
+    """
     states = [init_state]
     trans_map = {}
     work_list = [init_state]
@@ -308,6 +329,22 @@ def canonical_lr0_collection(init_state: LRState, G: dict) -> tuple[list[LRState
 def slr_table(states: list[LRState], trans_map: dict[tuple:int], start_symbol: str, follow_set: dict) -> tuple[
     dict, dict]:
     """
+    SLR 解析表是基于上面的 LR(0) 自动机制作的。我们知道 SLR 表有两个部分，一个部分是 Action 表，另外一部分是 Goto 表。
+
+    构造 SLR 解析表中的 Action 表需要三步：
+    1. 生成“规范-LR(0) 项集族”。
+    2. 遍历项集族中的项集 I0,I1...In
+    3. 对于其中的一个项集Ii，遍历其中的每一个 LR(0) 项
+        * 如果这个项的点号右边是终结符a并且 goto(Ii, a) = Ij，就把 Action[i, a] 设成“移入 j”——相当于解析器读入了一个符号之后，
+        被这个符号带到了状态 j。
+        * 如果这个项的点号在整个产生式的最右边（形如 A -> a.），并且 A不是增广文法的开始符号，就找出A的 FOLLOW 集，遍历其中的终结符
+        a，把 Action[i, a] 设成“归约 i”——相当于我们已经处理完了 A 这个非终结符，可以开始处理下一个了。
+        * 如果这个项是 S' -> S（S 可以是任意开始符），就把 Action[i, eof] 设成“接受”
+
+    构造 Goto 表,
+    遍历所有非终结符。如果对于某个非终结符 A，有 goto(Ii, A) = Ij，那么我们就把 GOTO[i, A] 设成 j——这样告诉解析器，归约了A之后，
+    要切换到状态 j 接受新的输入。
+    这样 Goto 和 Action 的构造就完成了。
 
     :param states:
     :param trans_map:
