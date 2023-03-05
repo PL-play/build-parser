@@ -1,6 +1,6 @@
 import unittest
 
-from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection
+from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection, slr_table, first, follow
 
 
 class LL1Test(unittest.TestCase):
@@ -51,3 +51,25 @@ class LL1Test(unittest.TestCase):
         states, trans_map = canonical_lr0_collection(init, grammar)
         print(states)
         print(trans_map)
+
+    def test4(self):
+        items = []
+        grammar = {
+            "S": [["C", "C"]],
+            "C": [["c", "C"], "d"],
+        }
+        non_terminal = {"C", "S"}
+        first_set = first(grammar, non_terminal)
+        print('first set:', first_set)
+        follow_set = follow(grammar, non_terminal, first_set)
+        print('follow set:', follow_set)
+
+        items.append(Item0("S'", ("S",), 0))
+        result = closure(items, grammar)
+        init = LRState(0, (set(result)))
+
+        states, trans_map = canonical_lr0_collection(init, grammar)
+
+        action_table, goto_table = slr_table(states, trans_map, "S'", follow_set)
+        print(action_table)
+        print(goto_table)
