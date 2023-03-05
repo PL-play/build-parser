@@ -183,15 +183,22 @@ def get_follow(G, p, first_set, follow_set):
 
 
 class Item0:
-    def __init__(self, lhs: str, rule: list, pos: int) -> None:
+    def __init__(self, lhs: str, rule: tuple, pos: int) -> None:
         self.lhs = lhs
-        self.rule = rule
+        self.rule = rule if isinstance(rule, tuple) else tuple(rule)
         self.pos = pos
 
     def peek_dot_right(self):
         if self.pos > len(self.rule) - 1:
             return eof
         return self.rule[self.pos]
+
+    def move(self):
+        if self.pos < len(self.rule):
+            new_item = copy.deepcopy(self)
+            new_item.pos += 1
+            return new_item
+        return None
 
     def __str__(self) -> str:
         s = [r for r in self.rule]
@@ -201,17 +208,28 @@ class Item0:
     def __repr__(self):
         return self.__str__()
 
+    def __key(self):
+        return self.lhs, self.rule, self.pos
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        if isinstance(other, Item0):
+            return self.__key() == other.__key()
+        return False
+
 
 class LRState:
-    def __init__(self):
-        self.name = 0
-        self.items = []
+    def __init__(self, name: int, items: set):
+        self.name = name if name is not None else 0
+        self.items = items if items is not None else set()
 
     def add_item(self, item: Item0):
-        self.items.append(item)
+        self.items.add(item)
 
-    def add_items(self, items: list[Item0]):
-        self.items = self.items + items
+    def add_items(self, items: set[Item0]):
+        self.items = self.items.union(items)
 
     def set_name(self, name: int):
         self.name = name
@@ -229,7 +247,7 @@ class LRState:
 def closure(items: list[Item0], G: dict) -> list[Item0]:
     """
 
-    :param state:
+    :param items:
     :param G:
     :return:
     """
@@ -242,8 +260,17 @@ def closure(items: list[Item0], G: dict) -> list[Item0]:
         if is_non_terminal(next_i):
             for rule in G[next_i]:
                 work_list.append(Item0(next_i, rule, 0))
-
     return result
+
+
+def goto(state: LRState, symbol: str, G: dict) -> list[Item0]:
+    new_items = []
+    for i in state.items:
+        if i.peek_dot_right() == symbol:
+            moved_item = i.move()
+            if moved_item:
+                new_items.append(moved_item)
+    return closure(new_items, G)
 
 
 if __name__ == '__main__':
