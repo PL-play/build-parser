@@ -1,6 +1,6 @@
 import unittest
 
-from LR.LR0 import closure, Item0, LRState, goto
+from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection
 
 
 class LL1Test(unittest.TestCase):
@@ -37,3 +37,17 @@ class LL1Test(unittest.TestCase):
 
         print(state1)
         print(state2)
+
+    def test3(self):
+        items = []
+        grammar = {
+            "S": [["C", "C"]],
+            "C": [["c", "C"], "d"],
+        }
+        items.append(Item0("S'", ("S",), 0))
+        result = closure(items, grammar)
+        init = LRState(0, (set(result)))
+
+        states, trans_map = canonical_lr0_collection(init, grammar)
+        print(states)
+        print(trans_map)

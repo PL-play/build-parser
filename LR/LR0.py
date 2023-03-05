@@ -221,7 +221,7 @@ class Item0:
 
 
 class LRState:
-    def __init__(self, name: int, items: set):
+    def __init__(self, name: int, items: set[Item0]):
         self.name = name if name is not None else 0
         self.items = items if items is not None else set()
 
@@ -233,6 +233,9 @@ class LRState:
 
     def set_name(self, name: int):
         self.name = name
+
+    def next_symbols(self):
+        return [s.peek_dot_right() for s in self.items if s.peek_dot_right() is not eof]
 
     def __str__(self) -> str:
         s = []
@@ -271,6 +274,35 @@ def goto(state: LRState, symbol: str, G: dict) -> list[Item0]:
             if moved_item:
                 new_items.append(moved_item)
     return closure(new_items, G)
+
+
+def _find_index(states: list[LRState], items: set[Item0]):
+    for index, s in enumerate(states):
+        if s.items == items:
+            return index
+    return -1
+
+
+def canonical_lr0_collection(init_state: LRState, G: dict) -> tuple[list[LRState], dict[tuple:int]]:
+    states = [init_state]
+    trans_map = {}
+    work_list = [init_state]
+
+    while len(work_list) > 0:
+        state = work_list.pop()
+        symbols = state.next_symbols()
+        for s in symbols:
+            items = set(goto(state, s, G))
+            index = _find_index(states, items)
+            if index == -1:
+                new_state = LRState(len(states), items)
+                states.append(new_state)
+                trans_map[(state.name, s)] = new_state.name
+                work_list.append(new_state)
+            else:
+                trans_map[(state.name, s)] = index
+
+    return states, trans_map
 
 
 if __name__ == '__main__':
