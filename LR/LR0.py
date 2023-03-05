@@ -326,7 +326,7 @@ def canonical_lr0_collection(init_state: LRState, G: dict) -> tuple[list[LRState
     return states, trans_map
 
 
-def slr_table(states: list[LRState], trans_map: dict[tuple:int], start_symbol: str, follow_set: dict) -> tuple[
+def slr1_table(states: list[LRState], trans_map: dict[tuple:int], start_symbol: str, follow_set: dict) -> tuple[
     dict, dict]:
     """
     SLR 解析表是基于上面的 LR(0) 自动机制作的。我们知道 SLR 表有两个部分，一个部分是 Action 表，另外一部分是 Goto 表。

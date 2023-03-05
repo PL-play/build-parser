@@ -1,6 +1,6 @@
 import unittest
 
-from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection, slr_table, first, follow
+from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection, first, follow, slr1_table
 
 
 class LL1Test(unittest.TestCase):
@@ -70,6 +70,6 @@ class LL1Test(unittest.TestCase):
 
         states, trans_map = canonical_lr0_collection(init, grammar)
 
-        action_table, goto_table = slr_table(states, trans_map, "S'", follow_set)
+        action_table, goto_table = slr1_table(states, trans_map, "S'", follow_set)
         print(action_table)
         print(goto_table)
