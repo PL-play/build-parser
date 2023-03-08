@@ -22,13 +22,13 @@ Expression
     : AdditiveExpression
     ;
 
-AdditiveExpression:
+AdditiveExpression
     : AdditiveExpression ADDITIVE_OPERATOR MultiplicativeExpression
     {$$ = BinaryExpression($1,$2,$3)}
     | MultiplicativeExpression
     ;
 
-MultiplicativeExpression:
+MultiplicativeExpression
     : MultiplicativeExpression MULTIPLICATIVE_OPERATOR PrimaryExpression
     {$$ = BinaryExpression($1,$2,$3)}
     | PrimaryExpression;
