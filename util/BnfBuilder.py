@@ -62,6 +62,8 @@ class BnfBuilder:
                 self.current_non_terminal = p[0]
                 self.production_map[p[0]] = [p[2:]]
                 self.non_terminals.add(p[0])
+                if not self.start_symbol:
+                    self.start_symbol = p[0]
 
         for s in p:
             if s != self.epsilon and s != self.or_delimiter and s != self.prod_delimiter:

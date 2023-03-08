@@ -10,3 +10,4 @@ class LL1Test(unittest.TestCase):
         print(builder.production_map)
         print(builder.terminals)
         print(builder.non_terminals)
+        print(builder.start_symbol)
