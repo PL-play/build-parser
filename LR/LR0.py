@@ -357,11 +357,11 @@ def slr1_table(states: list[LRState], trans_map: dict[tuple:int], start_symbol: 
         for item in s.items:
             next_symbol = item.peek_dot_right()
             if is_terminal(next_symbol):
-                action_table[(s.name, next_symbol)] = f"s{trans_map[(s.name, next_symbol)]}"
+                action_table[(s.name, next_symbol)] = ('s', trans_map[(s.name, next_symbol)])
             elif next_symbol == eof and item.lhs != start_symbol:
                 for f in follow_set[item.lhs]:
                     if is_terminal(f):
-                        action_table[(s.name, f)] = f"r{s.name}"
+                        action_table[(s.name, f)] = ('r', (item.lhs, item.rule))
             elif next_symbol == eof and item.lhs == start_symbol:
                 action_table[(s.name, next_symbol)] = 'acc'
     for s in states:
