@@ -1,6 +1,7 @@
 import unittest
 
 from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection, first, follow, slr1_table
+from LR.LR0Parser import LR0Parser
 
 
 class LL1Test(unittest.TestCase):
@@ -71,5 +72,11 @@ class LL1Test(unittest.TestCase):
         states, trans_map = canonical_lr0_collection(init, grammar)
 
         action_table, goto_table = slr1_table(states, trans_map, "S'", follow_set)
+        print(action_table)
+        print(goto_table)
+
+    def test5(self):
+        parser = LR0Parser('g5.bnf')
+        action_table, goto_table = parser.slr1_table()
         print(action_table)
         print(goto_table)

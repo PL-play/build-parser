@@ -69,14 +69,4 @@ class BnfBuilder:
             if s != self.epsilon and s != self.or_delimiter and s != self.prod_delimiter:
                 self.symbols.add(s)
 
-    def is_terminal(self, symbol: str) -> bool:
-        return symbol in self.terminals
 
-    def is_non_terminal(self, symbol: str) -> bool:
-        return symbol in self.non_terminals
-
-    def is_epsilon(self, symbol: str) -> bool:
-        return symbol == self.epsilon
-
-    def start_symbol(self) -> str:
-        return self.start_symbol
