@@ -32,7 +32,7 @@ class BnfBuilder:
         file.close()
         self.terminals = self.symbols - self.non_terminals
 
-    def _find_index(self, p: list, item):
+    def _find_index(self, p: list, item) -> int:
         for index, s in enumerate(p):
             if s == item:
                 return index
@@ -68,3 +68,15 @@ class BnfBuilder:
         for s in p:
             if s != self.epsilon and s != self.or_delimiter and s != self.prod_delimiter:
                 self.symbols.add(s)
+
+    def is_terminal(self, symbol: str) -> bool:
+        return symbol in self.terminals
+
+    def is_non_terminal(self, symbol: str) -> bool:
+        return symbol in self.non_terminals
+
+    def is_epsilon(self, symbol: str) -> bool:
+        return symbol == self.epsilon
+
+    def start_symbol(self) -> str:
+        return self.start_symbol
