@@ -81,9 +81,8 @@ class LR0Parser:
         self.epsilon = self.bnf_builder.epsilon
         self.start_symbol = self.bnf_builder.start_symbol
         self.eof = eof
-        non_lr_grammar = self.eliminateLeftRecursion(copy.deepcopy(self.grammar))
-        self.first_set = self.first(non_lr_grammar)
-        self.follow_set = self.follow(non_lr_grammar, self.first_set)
+        self.first_set = self.first(self.grammar)
+        self.follow_set = self.follow(self.grammar, self.first_set)
         self.lr0_states = None
         self.lr0_trans_function = None
         self.init_state = LRState(0, (set(self.closure([Item0(f"{self.start_symbol}'", (self.start_symbol,), 0)]))))
@@ -102,155 +101,77 @@ class LR0Parser:
     def is_start(self, symbol: str) -> bool:
         return symbol == self.start_symbol
 
-    def eliminateLeftRecursion(self, grammar):
-        # Step 1: Identify left-recursive non-terminals and create new non-terminals
-        new_rules = {}
-        for non_terminal, rules in grammar.items():
-            left_recursive = [rule for rule in rules if
-                              self.is_non_terminal(rule[0]) and rule[0] == non_terminal]
-            non_left_recursive = [rule for rule in rules if
-                                  not self.is_non_terminal(rule[0]) or rule[0] != non_terminal]
-            if len(left_recursive) > 0:
-                new_non_terminal = non_terminal + "'"
-                new_rules[new_non_terminal] = []
-                for rule in left_recursive:
-                    new_rules[new_non_terminal].append(rule[1:] + [new_non_terminal])
-                for rule in non_left_recursive:
-                    new_rules[non_terminal] = new_rules.get(non_terminal, []) + [
-                        rule if isinstance(rule, (list, tuple)) else [rule] + [new_non_terminal]]
-
-        # Step 2: Update the grammar with the new non-terminals
-        for non_terminal, rules in new_rules.items():
-            if non_terminal in rules[0]:
-                # Add an epsilon rule to the new non-terminal
-                rules.append([self.epsilon])
-            grammar[non_terminal] = rules
-
-        return grammar
-
-    def first(self, grammar):
-        cache = {}
-
-        for nt in self.non_terminals:
-            self.get_first(grammar, nt, cache)
-
-        return cache
-
-    def get_first(self, G: dict, non_terminal: str, cache: dict) -> dict:
+    def first(self, grammar: dict):
         """
-        1) If x is terminal, then FIRST(x)={x}
-
-        2) If X→ ε is production, then add ε to FIRST(X)
-
-        3) If X is a non-terminal and X → PQR then FIRST(X)=FIRST(P)
-
-           If FIRST(P) contains ε, then
-
-           FIRST(X) = (FIRST(P) – {ε}) U FIRST(QR)
-        :param G:
-        :param non_terminal:
-        :param cache:
+        Rules:
+            #1. First(a) = a, a is terminal.
+            #2. X -> Y1Y2...Yn, for each symbol Yi, if 'ε' is not in First(Yi), First(X) = First(X) U First(Yi).
+                If 'ε' is in First(Yi), First(X) = First(X) U First(Yi) U First(Yi+1).
+            #3. if X -> ε, add 'ε' to First(X).
+        :param grammar:
         :return:
         """
-        if cache.get(non_terminal, None) is not None:
-            return cache.get(non_terminal)
-        first_set = set()
-        for production in G[non_terminal]:
-            # X -> a，a为终结符，将a加入first(X)
-            if self.is_terminal(production[0]):
-                first_set.add(production[0])
-                cache[non_terminal] = first_set
-            # X -> εY1Y2...Yk，将ε加入first(X),同时将first(Y1Y2...Yk)加入first(X)
-            elif self.is_epsilon(production[0]):
-                first_set.add(production[0])
-                if len(production) > 1:
-                    first_set |= self.get_first(G, production[1], cache)
-                cache[non_terminal] = first_set
-            # X -> C,C为非终结符，first(X) = first(C)
-            elif self.is_non_terminal(production[0]):
-                first_set = self.get_first(G, production[0], cache)
-                cache[non_terminal] = first_set
-        return first_set
+        result = {}
+        last_result_count = {}
+        is_change = True
+        for g in grammar:
+            result[g] = set()
+            last_result_count[g] = 0
+        while is_change:
+            for g in grammar:
+                rhs = grammar[g]
+                for rules in rhs:
+                    for r in rules:
+                        f = copy.deepcopy(result.get(r, {r}))
+                        result[g] |= f
+                        if self.epsilon not in f:
+                            break
+            is_change = False
+            for r in result:
+                if len(result[r]) != last_result_count[r]:
+                    last_result_count[r] = len(result[r])
+                    is_change = True
+        return result
 
     def follow(self, grammar: dict, first_set: dict) -> dict:
-        cache = {}
-
-        for nt in self.non_terminals:
-            self.get_follow(grammar, nt, first_set, cache)
-
-        return cache
-
-    def get_follow(self, G: dict, p: str, first_set: dict, follow_set: dict) -> set:
         """
-        1) For Start symbol, place $ in FOLLOW(S)
-
-        2) If A→ α B, then FOLLOW(B) = FOLLOW(A)
-
-        3) If A→ α B β, then
-
-          If ε not in FIRST(β),
-
-               FOLLOW(B) = FIRST(β)
-
-          else do,
-
-               FOLLOW(B) = (FIRST(β)-{ε}) U FOLLOW(A)
-
-        一个文法符号的FOLLOW集就是可能出现在这个文法符号后面的终结符.
-
-        比如 S->ABaD, 那么FOLLOW(B)的值就是a。
-
-        如果First(B)包含空:
-        1). FOLLOW(A)的值包含了FIRST(B)中除了ε以外的所有终结符;
-        2). 把FOLLOW(B)的值也添加到FOLLOW(A)中
-
-        D是文法符号S的最右符号，
-        那么所有跟在S后面的符号必定跟在D后面。所以FOLLOW(S)所有的值都在FOLLOW(D)中.
-
-        以下是书中的总结
-
-        不断应用下面这两个规则，直到没有新的FOLLOW集被加入
-        规则一: FOLLOW(S)中加入$, S是文法开始符号
-        规则二: A->CBY FOLLOW(B) 就是FIRST(Y)
-        规则三: A->CB 或者 A->CBZ(Z可以推导出ε) 所有FOLLOW(A)的符号都在FOLLOW(B)
-
-        :param G:
-        :param p:
+        Rules:
+            #1. If S is start symbol,add eof to Follow(S).
+            #2. A -> xBy, add {First(y) - ε} to Follow(B).
+            #3. A -> xB, add Follow(A) to Follow(B).
+        :param grammar:
         :param first_set:
-        :param follow_set:
         :return:
         """
-        if p in follow_set:
-            return follow_set[p]
-        f = set()
-        # put $ to follow(S) if S is start symbol
-        if self.is_start(p):
-            f.add(self.eof)
-        for nt, prod_list in G.items():
-            for prod in prod_list:
-                if p not in prod:
-                    continue
-                i = prod.index(p)
-                # A -> aB, follow(B) = follow(A)
-                if i == len(prod) - 1:
-                    # prevent infinite recursion of like E -> aE
-                    if nt != p:
-                        f |= self.get_follow(G, nt, first_set, follow_set)
-                else:
-                    # A -> Bc, put c in follow(B)
-                    if self.is_terminal(prod[i + 1]):
-                        f.add(prod[i + 1])
-                    # A -> aBC, put first(C) - ε to follow(B)
-                    elif self.is_non_terminal(prod[i + 1]):
-                        next_first = copy.deepcopy(first_set[prod[i + 1]])
-                        if self.epsilon in next_first:
-                            next_first.remove(self.epsilon)
-                            if nt != p:
-                                f |= self.get_follow(G, prod[i + 1], first_set, follow_set)
-                        f |= next_first
+        result = {}
+        last_result_count = {}
+        is_change = True
+        for g in grammar:
+            result[g] = set()
+            last_result_count[g] = 0
+            if g == self.start_symbol:
+                result[g].add(self.eof)
+                last_result_count[g] += 1
 
-        follow_set[p] = f
-        return f
+        while is_change:
+            for g in grammar:
+                rhs = grammar[g]
+                for rule in rhs:
+                    l = len(rule)
+                    for i, s in enumerate(rule):
+                        if not self.is_non_terminal(s):
+                            continue
+                        if i == l - 1:
+                            result[s] |= copy.deepcopy(result[g])
+                        else:
+                            result[s] |= copy.deepcopy(first_set.get(rule[i + 1], {rule[i + 1]}) - set(self.epsilon))
+
+            is_change = False
+            for r in result:
+                if len(result[r]) != last_result_count[r]:
+                    last_result_count[r] = len(result[r])
+                    is_change = True
+        return result
 
     def closure(self, items: list[Item0]) -> list[Item0]:
         # TODO fix bug

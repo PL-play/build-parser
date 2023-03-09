@@ -11,3 +11,18 @@ def number(x):
         return float(x)
     except (TypeError, ValueError):
         return None
+
+
+def first(grammar: dict):
+    """
+
+    :param grammar:
+    :return:
+    """
+    result = {}
+    result_statistic = {}
+    for g in grammar:
+        result[g] = set()
+        result_statistic[g] = 0
+
+    return result
