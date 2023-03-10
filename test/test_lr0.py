@@ -77,6 +77,7 @@ class LL1Test(unittest.TestCase):
 
     def test5(self):
         parser = LR0Parser('g5.bnf')
+        parser.canonical_lr0_collection()
         action_table, goto_table = parser.slr1_table()
         print(action_table)
         print(goto_table)

@@ -81,13 +81,25 @@ class LR0Parser:
         self.epsilon = self.bnf_builder.epsilon
         self.start_symbol = self.bnf_builder.start_symbol
         self.eof = eof
-        self.first_set = self.first(self.grammar)
-        self.follow_set = self.follow(self.grammar, self.first_set)
         self.lr0_states = None
         self.lr0_trans_function = None
-        self.init_state = LRState(0, (set(self.closure([Item0(f"{self.start_symbol}'", (self.start_symbol,), 0)]))))
+        self.init_state = None
         self.action_table = None
         self.goto_table = None
+        self.augment_grammar()
+        self.bnf_builder.build_first_set()
+        self.bnf_builder.build_follow_set()
+        self.first_set = self.bnf_builder.first_set
+        self.follow_set = self.bnf_builder.follow_set
+
+    def augment_grammar(self):
+        old_start = self.bnf_builder.start_symbol
+        new_start = old_start + "'"
+        self.bnf_builder.start_symbol = new_start
+        self.bnf_builder.production_map[new_start] = [[old_start]]
+        self.start_symbol = new_start
+        self.grammar = self.bnf_builder.production_map
+        self.init_state = LRState(0, (self.closure([Item0(f"{new_start}", (old_start,), 0)])))
 
     def is_terminal(self, symbol: str) -> bool:
         return symbol in self.terminals
@@ -101,79 +113,7 @@ class LR0Parser:
     def is_start(self, symbol: str) -> bool:
         return symbol == self.start_symbol
 
-    def first(self, grammar: dict):
-        """
-        Rules:
-            #1. First(a) = a, a is terminal.
-            #2. X -> Y1Y2...Yn, for each symbol Yi, if 'ε' is not in First(Yi), First(X) = First(X) U First(Yi).
-                If 'ε' is in First(Yi), First(X) = First(X) U First(Yi) U First(Yi+1).
-            #3. if X -> ε, add 'ε' to First(X).
-        :param grammar:
-        :return:
-        """
-        result = {}
-        last_result_count = {}
-        is_change = True
-        for g in grammar:
-            result[g] = set()
-            last_result_count[g] = 0
-        while is_change:
-            for g in grammar:
-                rhs = grammar[g]
-                for rules in rhs:
-                    for r in rules:
-                        f = copy.deepcopy(result.get(r, {r}))
-                        result[g] |= f
-                        if self.epsilon not in f:
-                            break
-            is_change = False
-            for r in result:
-                if len(result[r]) != last_result_count[r]:
-                    last_result_count[r] = len(result[r])
-                    is_change = True
-        return result
-
-    def follow(self, grammar: dict, first_set: dict) -> dict:
-        """
-        Rules:
-            #1. If S is start symbol,add eof to Follow(S).
-            #2. A -> xBy, add {First(y) - ε} to Follow(B).
-            #3. A -> xB, add Follow(A) to Follow(B).
-        :param grammar:
-        :param first_set:
-        :return:
-        """
-        result = {}
-        last_result_count = {}
-        is_change = True
-        for g in grammar:
-            result[g] = set()
-            last_result_count[g] = 0
-            if g == self.start_symbol:
-                result[g].add(self.eof)
-                last_result_count[g] += 1
-
-        while is_change:
-            for g in grammar:
-                rhs = grammar[g]
-                for rule in rhs:
-                    l = len(rule)
-                    for i, s in enumerate(rule):
-                        if not self.is_non_terminal(s):
-                            continue
-                        if i == l - 1:
-                            result[s] |= copy.deepcopy(result[g])
-                        else:
-                            result[s] |= copy.deepcopy(first_set.get(rule[i + 1], {rule[i + 1]}) - set(self.epsilon))
-
-            is_change = False
-            for r in result:
-                if len(result[r]) != last_result_count[r]:
-                    last_result_count[r] = len(result[r])
-                    is_change = True
-        return result
-
-    def closure(self, items: list[Item0]) -> list[Item0]:
+    def closure(self, items: list[Item0]) -> set[Item0]:
         # TODO fix bug
         """
         对于某个项集 I,首先把它里面的所有项放到它的闭包CLOSURE(I)中，接着遍历CLOSURE(I)中的每一项。如果遍历到的这一项点号右边恰好是非终结符，
@@ -183,21 +123,30 @@ class LR0Parser:
         :param G:
         :return:
         """
-        result = []
-        work_list = [] + items
-        while len(work_list) > 0:
-            print(work_list)
-            item = work_list.pop()
-            result.append(item)
-            next_i = item.peek_dot_right()
-            if self.is_non_terminal(next_i):
-                for rule in self.grammar[next_i]:
-                    i = Item0(next_i, rule, 0)
-                    if i not in work_list:
-                        work_list.append(i)
+        result = set(copy.deepcopy(items))
+        is_change = True
+        last_size = len(result)
+
+        while is_change:
+            new_items = set()
+            for item in result:
+                next_i = item.peek_dot_right()
+                if self.is_non_terminal(next_i):
+                    for rule in self.grammar[next_i]:
+                        i = Item0(next_i, rule, 0)
+                        if i not in result:
+                            new_items.add(i)
+            result |= new_items
+
+            if len(result) != last_size:
+                is_change = True
+                last_size = len(result)
+            else:
+                is_change = False
+
         return result
 
-    def goto(self, state: LRState, symbol: str) -> list[Item0]:
+    def goto(self, state: LRState, symbol: str) -> set[Item0]:
         """
         GOTO 函数有两个参数，其中一个是某个项集，另一个是语法中的符号——可以是终结符，也可以是非终结符，还可以是 eof.
         对于某个项I和语法符号X，要计算GOTO(I, X，可以采用下面的方法:

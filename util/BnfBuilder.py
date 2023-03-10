@@ -1,3 +1,4 @@
+import copy
 import shlex
 
 
@@ -21,6 +22,15 @@ class BnfBuilder:
         self.start_symbol = None
         self.comment_symbol = comment_symbol
         self.current_line = None
+        self.first_set = None
+        self.follow_set = None
+
+    def build_first_set(self):
+        self.first_set = self.first(self.production_map, epsilon_symbol=self.epsilon)
+
+    def build_follow_set(self):
+        self.follow_set = self.follow(self.production_map, self.first_set, self.non_terminals, self.start_symbol,
+                                      self.epsilon)
 
     def build(self):
         file = open(self.bnf_path, "r")
@@ -69,4 +79,77 @@ class BnfBuilder:
             if s != self.epsilon and s != self.or_delimiter and s != self.prod_delimiter:
                 self.symbols.add(s)
 
+    @staticmethod
+    def first(grammar: dict, epsilon_symbol: str = 'ε'):
+        """
+        Rules:
+            #1. First(a) = a, a is terminal.
+            #2. X -> Y1Y2...Yn, for each symbol Yi, if 'ε' is not in First(Yi), First(X) = First(X) U First(Yi).
+                If 'ε' is in First(Yi), First(X) = First(X) U First(Yi) U First(Yi+1).
+            #3. if X -> ε, add 'ε' to First(X).
+        :param grammar:
+        :return:
+        """
+        result = {}
+        last_result_count = {}
+        is_change = True
+        for g in grammar:
+            result[g] = set()
+            last_result_count[g] = 0
+        while is_change:
+            for g in grammar:
+                rhs = grammar[g]
+                for rules in rhs:
+                    for r in rules:
+                        f = copy.deepcopy(result.get(r, {r}))
+                        result[g] |= f
+                        if epsilon_symbol not in f:
+                            break
+            is_change = False
+            for r in result:
+                if len(result[r]) != last_result_count[r]:
+                    last_result_count[r] = len(result[r])
+                    is_change = True
+        return result
 
+    @staticmethod
+    def follow(grammar: dict, first_set: dict, non_terminals: set, start_symbol: str, epsilon_symbol: str = 'ε',
+               eof: str = '$') -> dict:
+        """
+        Rules:
+            #1. If S is start symbol,add eof to Follow(S).
+            #2. A -> xBy, add {First(y) - ε} to Follow(B).
+            #3. A -> xB, add Follow(A) to Follow(B).
+        :param grammar:
+        :param first_set:
+        :return:
+        """
+        result = {}
+        last_result_count = {}
+        is_change = True
+        for g in grammar:
+            result[g] = set()
+            last_result_count[g] = 0
+            if g == start_symbol:
+                result[g].add(eof)
+                last_result_count[g] += 1
+
+        while is_change:
+            for g in grammar:
+                rhs = grammar[g]
+                for rule in rhs:
+                    l = len(rule)
+                    for i, s in enumerate(rule):
+                        if s not in non_terminals:
+                            continue
+                        if i == l - 1:
+                            result[s] |= copy.deepcopy(result[g])
+                        else:
+                            result[s] |= copy.deepcopy(first_set.get(rule[i + 1], {rule[i + 1]}) - set(epsilon_symbol))
+
+            is_change = False
+            for r in result:
+                if len(result[r]) != last_result_count[r]:
+                    last_result_count[r] = len(result[r])
+                    is_change = True
+        return result
