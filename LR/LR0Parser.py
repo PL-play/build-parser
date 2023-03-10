@@ -3,6 +3,7 @@ import copy
 from prettytable import PrettyTable, ALL
 
 from util.BnfBuilder import BnfBuilder
+from util.Lexer import Token
 
 
 class Item0:
@@ -332,3 +333,6 @@ class LR0Parser:
             x.add_row(row)
 
         print(x)
+
+    def parse(self, input_tokens: list[Token]):
+        input_tokens.append(Token(self.eof, self.eof))
