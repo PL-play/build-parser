@@ -79,5 +79,8 @@ class LL1Test(unittest.TestCase):
         parser = LR0Parser('g5.bnf')
         parser.canonical_lr0_collection()
         action_table, goto_table = parser.slr1_table()
-        print(action_table)
-        print(goto_table)
+
+    def test6(self):
+        parser = LR0Parser('g6.bnf')
+        parser.canonical_lr0_collection()
+        action_table, goto_table = parser.slr1_table()

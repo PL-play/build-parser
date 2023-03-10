@@ -1,5 +1,7 @@
 import copy
 
+from prettytable import PrettyTable, ALL
+
 from util.BnfBuilder import BnfBuilder
 
 
@@ -76,6 +78,7 @@ class LR0Parser:
         self.bnf_builder = BnfBuilder(bnf_file)
         self.bnf_builder.build()
         self.grammar = self.bnf_builder.production_map
+        self.grammar_list = self.bnf_builder.grammar_list
         self.non_terminals = self.bnf_builder.non_terminals
         self.terminals = self.bnf_builder.terminals
         self.epsilon = self.bnf_builder.epsilon
@@ -86,20 +89,58 @@ class LR0Parser:
         self.init_state = None
         self.action_table = None
         self.goto_table = None
-        self.augment_grammar()
         self.bnf_builder.build_first_set()
         self.bnf_builder.build_follow_set()
         self.first_set = self.bnf_builder.first_set
         self.follow_set = self.bnf_builder.follow_set
+        self.augment_grammar()
+        self.print_first_follow()
+
+    def print_first_follow(self):
+        x = PrettyTable()
+        x.title = 'First & Follow set'
+        x.field_names = ["Symbol", "First", "Follow"]
+        for nt in self.non_terminals:
+            x.add_row([nt, f" {' '.join(self.first_set[nt])} ", f" {' '.join(self.follow_set[nt])} "])
+
+        print(x)
+
+    def print_state(self, states: list[LRState], trans: dict[tuple:int]):
+        print('LR0 states')
+        print()
+        print('++++++++')
+        for s in states:
+            x = PrettyTable()
+            x.title = f'State: {s.name}'
+            x.field_names = ["No.", "Rule"]
+            for index, item in enumerate(s.items):
+                x.add_row([index + 1, item])
+            print(x)
+
+            trans_row = []
+            for t in trans:
+                if t[0] == s.name:
+                    trans_row.append([s.name, t[1], trans[t]])
+            if len(trans_row) > 0:
+                x = PrettyTable()
+                x.title = f'state trans'
+                x.field_names = ["From", "Symbol", "Target"]
+                x.add_rows(trans_row)
+                print(x)
+
+            print('++++++++')
+            print()
 
     def augment_grammar(self):
         old_start = self.bnf_builder.start_symbol
         new_start = old_start + "'"
-        self.bnf_builder.start_symbol = new_start
-        self.bnf_builder.production_map[new_start] = [[old_start]]
+        self.grammar[new_start] = [[old_start]]
+        self.non_terminals.add(new_start)
         self.start_symbol = new_start
-        self.grammar = self.bnf_builder.production_map
+        self.first_set[new_start] = self.first_set[old_start]
+        self.follow_set[new_start] = set(self.eof)
         self.init_state = LRState(0, (self.closure([Item0(f"{new_start}", (old_start,), 0)])))
+        self.grammar_list.insert(0, (new_start, (old_start,)))
 
     def is_terminal(self, symbol: str) -> bool:
         return symbol in self.terminals
@@ -114,7 +155,6 @@ class LR0Parser:
         return symbol == self.start_symbol
 
     def closure(self, items: list[Item0]) -> set[Item0]:
-        # TODO fix bug
         """
         对于某个项集 I,首先把它里面的所有项放到它的闭包CLOSURE(I)中，接着遍历CLOSURE(I)中的每一项。如果遍历到的这一项点号右边恰好是非终结符，
         把这个非终结符对应的若干产生式，做成“LR(0) 项”（点号放在产生式体最左边），再全部添加到CLOSURE(I)中。反复遍历，直到没有新项被添加到
@@ -189,7 +229,7 @@ class LR0Parser:
             state = work_list.pop()
             symbols = state.next_symbols()
             for s in symbols:
-                items = set(self.goto(state, s))
+                items = self.goto(state, s)
                 index = self._find_index(states, items)
                 if index == -1:
                     new_state = LRState(len(states), items)
@@ -200,6 +240,7 @@ class LR0Parser:
                     trans_map[(state.name, s)] = index
         self.lr0_states = states
         self.lr0_trans_function = trans_map
+        self.print_state(states, trans_map)
         return states, trans_map
 
     def slr1_table(self) -> tuple[dict, dict]:
@@ -225,6 +266,7 @@ class LR0Parser:
         :param trans_map:
         :return:
         """
+        self.print_grammar()
         action_table = {}
         goto_table = {}
         keys = self.lr0_trans_function.keys()
@@ -236,9 +278,9 @@ class LR0Parser:
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
                     for f in self.follow_set[item.lhs]:
                         if self.is_terminal(f):
-                            action_table[(s.name, f)] = ('r', (item.lhs, item.rule))
+                            action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
                 elif next_symbol == self.eof and item.lhs == self.start_symbol:
-                    action_table[(s.name, next_symbol)] = 'acc'
+                    action_table[(s.name, next_symbol)] = ('acc',)
         for s in self.lr0_states:
             for nt in self.non_terminals:
                 key = (s.name, nt)
@@ -246,4 +288,40 @@ class LR0Parser:
                     goto_table[key] = self.lr0_trans_function[key]
         self.action_table = action_table
         self.goto_table = goto_table
+        self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
         return action_table, goto_table
+
+    def lookup_grammar(self, lhs: str, rhs: tuple) -> int:
+        for index, g in enumerate(self.grammar_list):
+            if g[0] == lhs and g[1] == rhs:
+                return index
+        raise AssertionError(f"rule {lhs} -> {' '.join(rhs)} not found")
+
+    def print_grammar(self):
+        x = PrettyTable()
+        x.title = "Grammar"
+        for index, g in enumerate(self.grammar_list):
+            nt = g[0]
+            rule = g[1]
+            x.field_names = ["No.", "Production"]
+            x.add_row([index, f"{nt} -> {' '.join(rule)}"])
+        print(x)
+
+    def print_parsing_table(self, action_table: dict, goto_table: dict, states: list[LRState], grammar: dict):
+        x = PrettyTable()
+
+        x.title = 'ACTION'
+        terminals = list(self.terminals)
+        terminals.append(self.eof)
+        x.field_names = ['s\\t'] + terminals
+        x.hrules = ALL
+        for s in states:
+            row = [''] * len(x.field_names)
+            row[0] = s.name
+            for index, t in enumerate(terminals):
+                if (s.name, t) in action_table:
+                    action = action_table[(s.name, t)]
+                    row[index + 1] = f"{action[0]}{action[1] if len(action) > 1 else ''}"
+            x.add_row(row)
+
+        print(x)

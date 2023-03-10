@@ -8,7 +8,7 @@ class BNF:
 
 
 class BnfBuilder:
-    def __init__(self, bnf_path: str, prod_delimiter: str = ':', or_delimiter: str = '|', epsilon: str = 'ε',
+    def __init__(self, bnf_path: str, prod_delimiter: str = '->', or_delimiter: str = '|', epsilon: str = 'ε',
                  comment_symbol: str = '//') -> None:
         self.bnf_path = bnf_path
         self.prod_delimiter = prod_delimiter
@@ -24,6 +24,7 @@ class BnfBuilder:
         self.current_line = None
         self.first_set = None
         self.follow_set = None
+        self.grammar_list = []
 
     def build_first_set(self):
         self.first_set = self.first(self.production_map, epsilon_symbol=self.epsilon)
@@ -61,8 +62,11 @@ class BnfBuilder:
                 raise AssertionError(f"expect '{self.or_delimiter}' for this line")
             if len(p) == 1:
                 self.production_map[self.current_non_terminal].append([self.epsilon])
+                self.grammar_list.append((self.current_non_terminal, (self.epsilon,)))
             else:
                 self.production_map[self.current_non_terminal].append(p[1:])
+                self.grammar_list.append((self.current_non_terminal, tuple(p[1:])))
+
         else:
             if d_index != 1:
                 raise AssertionError(f"production delimiter must be after lhs: {self.current_line}")
@@ -71,6 +75,7 @@ class BnfBuilder:
             else:
                 self.current_non_terminal = p[0]
                 self.production_map[p[0]] = [p[2:]]
+                self.grammar_list.append((self.current_non_terminal, tuple(p[2:])))
                 self.non_terminals.add(p[0])
                 if not self.start_symbol:
                     self.start_symbol = p[0]
