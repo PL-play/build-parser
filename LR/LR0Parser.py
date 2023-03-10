@@ -310,10 +310,13 @@ class LR0Parser:
     def print_parsing_table(self, action_table: dict, goto_table: dict, states: list[LRState], grammar: dict):
         x = PrettyTable()
 
-        x.title = 'ACTION'
+        x.title = 'SLR Parsing Table'
         terminals = list(self.terminals)
         terminals.append(self.eof)
-        x.field_names = ['s\\t'] + terminals
+        non_terminals = list(self.non_terminals - {self.start_symbol})
+        action_fields = ['action'] + terminals
+        goto_fields = ['goto'] + non_terminals
+        x.field_names = action_fields + goto_fields
         x.hrules = ALL
         for s in states:
             row = [''] * len(x.field_names)
@@ -322,6 +325,10 @@ class LR0Parser:
                 if (s.name, t) in action_table:
                     action = action_table[(s.name, t)]
                     row[index + 1] = f"{action[0]}{action[1] if len(action) > 1 else ''}"
+            for index, nt in enumerate(non_terminals):
+                if (s.name, nt) in goto_table:
+                    goto = goto_table[(s.name, nt)]
+                    row[index + 2 + len(terminals)] = f"{goto}"
             x.add_row(row)
 
         print(x)
