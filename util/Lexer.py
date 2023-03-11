@@ -21,6 +21,14 @@ class Token:
     def __repr__(self):
         return f'Token({self.type}, {self.value})'
 
+    def __getitem__(self, index):
+        if index == 0:
+            return self.type
+        elif index == 1:
+            return self.value
+        else:
+            raise ValueError(f"index:{index} not support")
+
 
 # Define the Lexer class to tokenize the input text
 class Lexer:

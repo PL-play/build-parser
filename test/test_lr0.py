@@ -2,6 +2,7 @@ import unittest
 
 from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection, first, follow, slr1_table
 from LR.LR0Parser import LR0Parser
+from util.TokenGenerator import TokenGenerator
 
 
 class LL1Test(unittest.TestCase):
@@ -84,3 +85,18 @@ class LL1Test(unittest.TestCase):
         parser = LR0Parser('g6.bnf')
         parser.canonical_lr0_collection()
         action_table, goto_table = parser.slr1_table()
+        file_path = 'f6'
+        token_exprs = [
+            (r'[ \n\t]+', None),
+            (r'#[^\n]*', None),
+            (r'[-]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?', 'NUMBER'),
+            (r'\(', '('),
+            (r'\)', ')'),
+            (r'\+', '+'),
+            (r'\-', '-'),
+            (r'\*', '*'),
+            (r'\/', '/'),
+            (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
+        ]
+        token_generator = TokenGenerator(file_path, token_exprs)
+        parser.parse(token_generator)

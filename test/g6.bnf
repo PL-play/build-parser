@@ -4,5 +4,5 @@ E -> E + T
 T -> T * F
   | F
 
-F -> id
-  | ( E )
+F -> ( E )
+  | NUMBER

@@ -90,6 +90,7 @@ class LR0Parser:
         self.init_state = None
         self.action_table = None
         self.goto_table = None
+        self.parsing_table = None
         self.bnf_builder.build_first_set()
         self.bnf_builder.build_follow_set()
         self.first_set = self.bnf_builder.first_set
@@ -209,7 +210,7 @@ class LR0Parser:
                     new_items.append(moved_item)
         return self.closure(new_items)
 
-    def _find_index(self, states: list[LRState], items: set[Item0]) -> int:
+    def find_index(self, states: list[LRState], items: set[Item0]) -> int:
         for index, s in enumerate(states):
             if s.items == items:
                 return index
@@ -231,7 +232,7 @@ class LR0Parser:
             symbols = state.next_symbols()
             for s in symbols:
                 items = self.goto(state, s)
-                index = self._find_index(states, items)
+                index = self.find_index(states, items)
                 if index == -1:
                     new_state = LRState(len(states), items)
                     states.append(new_state)
@@ -278,8 +279,7 @@ class LR0Parser:
                     action_table[(s.name, next_symbol)] = ('s', self.lr0_trans_function[(s.name, next_symbol)])
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
                     for f in self.follow_set[item.lhs]:
-                        if self.is_terminal(f):
-                            action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
+                        action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
                 elif next_symbol == self.eof and item.lhs == self.start_symbol:
                     action_table[(s.name, next_symbol)] = ('acc',)
         for s in self.lr0_states:
@@ -290,6 +290,7 @@ class LR0Parser:
         self.action_table = action_table
         self.goto_table = goto_table
         self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
+        self.parsing_table = dict(action_table.items() | goto_table.items())
         return action_table, goto_table
 
     def lookup_grammar(self, lhs: str, rhs: tuple) -> int:
@@ -334,5 +335,54 @@ class LR0Parser:
 
         print(x)
 
-    def parse(self, input_tokens: list[Token]):
-        input_tokens.append(Token(self.eof, self.eof))
+    def parse(self, token_generator):
+        """
+        push $
+        push start state s0
+        word <- NextWord()
+        while(true):
+            state <- top of stack
+            if Action[state,word] = "reduce A -> B":
+                pop 2 * |B|
+                state <- top of stack
+                push A
+                push Goto[state,A]
+            else if Action[state,word] = "shift si":
+                push word
+                push si
+                word <- NextWord()
+            else if Action[state,word] = "accept":
+                break
+            else:
+                Fail()
+        report success
+
+        https://serokell.io/blog/how-to-implement-lr1-parser
+        :param token_generator:
+        :return:
+        """
+        stack = [(0, Token(self.eof, None))]
+        word = token_generator.next_token()
+        print(f"input: {word}")
+        while True:
+            print(stack)
+            state = stack[-1]
+            key = (state[0], word[0])
+            print(f"key {key}")
+            if self.parsing_table[key][0] == 'r':
+                print('shift')
+                g = self.parsing_table[key][1]
+                lhs, rhs = self.grammar_list[g][0], self.grammar_list[g][1]
+                for _ in range(len(rhs)):
+                    stack.pop()
+                new_state = (self.parsing_table[(stack[-1][0], lhs)], lhs)
+                stack.append(new_state)
+            elif self.parsing_table[key][0] == 's':
+                stack.append((self.parsing_table[key][1], word))
+                word = token_generator.next_token()
+                print(f"input: {word}")
+            elif self.parsing_table[key][0] == 'acc':
+                print("Accepted!")
+                break
+            else:
+                raise AssertionError("Parse failed")
