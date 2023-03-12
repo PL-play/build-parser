@@ -357,26 +357,6 @@ class LR0Parser:
                 Fail()
         report success
 
-
-        +------+--------------+-------------+----------------+----------------------+
-        |      |    STACK     |   SYMBOLS   |     INPUT      |        ACTION        |
-        +------+--------------+-------------+----------------+----------------------+
-        |  (1) | 0            |             | id + id * id $ | shift                |
-        |  (2) | 0 2          |  id         |    + id * id $ | reduce by F -> id    |
-        |  (3) | 0 4          |  F          |    + id * id $ | reduce by T -> F     |
-        |  (4) | 0 3          |  T          |    + id * id $ | reduce by E -> T     |
-        |  (5) | 0 1          |  E          |    + id * id $ | shift                |
-        |  (6) | 0 1 6        |  E +        |      id * id $ | shift                |
-        |  (7) | 0 1 6 2      |  E + id     |         * id $ | reduce by F -> id    |
-        |  (8) | 0 1 6 4      |  E + F      |         * id $ | reduce by T -> F     |
-        |  (9) | 0 1 6 9      |  E + T      |         * id $ | shift                |
-        | (10) | 0 1 6 9 7    |  E + T *    |           id $ | shift                |
-        | (11) | 0 1 6 9 7 2  |  E + T * id |              $ | reduce by F -> id    |
-        | (12) | 0 1 6 9 7 10 |  E + T * F  |              $ | reduce by T -> T * F |
-        | (13) | 0 1 6 9      |  E + T      |              $ | reduce by E -> E + T |
-        | (14) | 0 1          |  E          |              $ | accept               |
-        +------+--------------+-------------+----------------+----------------------+
-
         https://serokell.io/blog/how-to-implement-lr1-parser
         :param tokens:
         :return:
