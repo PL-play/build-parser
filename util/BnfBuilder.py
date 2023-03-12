@@ -44,7 +44,7 @@ class BnfBuilder:
             line = file.readline()
         file.close()
         if self.semantic_action_cache:
-            self.semantic_action[-1] = '\n'.join(self.semantic_action_cache)
+            self.semantic_action[-1] = ''.join(self.semantic_action_cache)
             self.semantic_action_cache = []
         self.terminals = self.symbols - self.non_terminals
         print(f"semantic action: {self.semantic_action}")
@@ -74,7 +74,7 @@ class BnfBuilder:
                 self.grammar_list.append((self.current_non_terminal, (self.epsilon,)))
                 self.semantic_action.append(None)
                 if self.semantic_action_cache:
-                    self.semantic_action[len(self.grammar_list) - 2]='\n'.join(self.semantic_action_cache)
+                    self.semantic_action[len(self.grammar_list) - 2]=''.join(self.semantic_action_cache)
                     self.semantic_action_cache = []
 
             else:
@@ -82,7 +82,7 @@ class BnfBuilder:
                 self.grammar_list.append((self.current_non_terminal, tuple(p[1:])))
                 self.semantic_action.append(None)
                 if self.semantic_action_cache:
-                    self.semantic_action[len(self.grammar_list) - 2] = '\n'.join(self.semantic_action_cache)
+                    self.semantic_action[len(self.grammar_list) - 2] = ''.join(self.semantic_action_cache)
                     self.semantic_action_cache = []
 
 
@@ -100,7 +100,7 @@ class BnfBuilder:
                     self.start_symbol = p[0]
                 self.semantic_action.append(None)
                 if self.semantic_action_cache:
-                    self.semantic_action[(len(self.grammar_list)) - 2] = '\n'.join(self.semantic_action_cache)
+                    self.semantic_action[(len(self.grammar_list)) - 2] = ''.join(self.semantic_action_cache)
                     self.semantic_action_cache = []
 
         for s in p:
