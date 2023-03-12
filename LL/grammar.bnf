@@ -1,4 +1,4 @@
-%%
+ %%
 \s+     /**/
 \d+     return 'NUMBER'
 [+\-]   return 'ADDITIVE_OPERATOR'

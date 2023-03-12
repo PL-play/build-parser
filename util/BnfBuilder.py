@@ -25,6 +25,8 @@ class BnfBuilder:
         self.first_set = None
         self.follow_set = None
         self.grammar_list = []
+        self.semantic_action_cache = []
+        self.semantic_action = []
 
     def build_first_set(self):
         self.first_set = self.first(self.production_map, epsilon_symbol=self.epsilon)
@@ -41,7 +43,11 @@ class BnfBuilder:
             self.build_production(shlex.split(line))
             line = file.readline()
         file.close()
+        if self.semantic_action_cache:
+            self.semantic_action[-1] = '\n'.join(self.semantic_action_cache)
+            self.semantic_action_cache = []
         self.terminals = self.symbols - self.non_terminals
+        print(f"semantic action: {self.semantic_action}")
 
     def _find_index(self, p: list, item) -> int:
         for index, s in enumerate(p):
@@ -59,13 +65,26 @@ class BnfBuilder:
             if not self.current_non_terminal:
                 raise AssertionError(f'No lhs found in "{self.current_line}"')
             if p[0] != self.or_delimiter:
-                raise AssertionError(f"expect '{self.or_delimiter}' for this line")
+                self.semantic_action_cache.append(self.current_line)
+                return
+                # raise AssertionError(f"expect '{self.or_delimiter}' for this line")
+
             if len(p) == 1:
                 self.production_map[self.current_non_terminal].append([self.epsilon])
                 self.grammar_list.append((self.current_non_terminal, (self.epsilon,)))
+                self.semantic_action.append(None)
+                if self.semantic_action_cache:
+                    self.semantic_action[len(self.grammar_list) - 2]='\n'.join(self.semantic_action_cache)
+                    self.semantic_action_cache = []
+
             else:
                 self.production_map[self.current_non_terminal].append(p[1:])
                 self.grammar_list.append((self.current_non_terminal, tuple(p[1:])))
+                self.semantic_action.append(None)
+                if self.semantic_action_cache:
+                    self.semantic_action[len(self.grammar_list) - 2] = '\n'.join(self.semantic_action_cache)
+                    self.semantic_action_cache = []
+
 
         else:
             if d_index != 1:
@@ -79,6 +98,10 @@ class BnfBuilder:
                 self.non_terminals.add(p[0])
                 if not self.start_symbol:
                     self.start_symbol = p[0]
+                self.semantic_action.append(None)
+                if self.semantic_action_cache:
+                    self.semantic_action[(len(self.grammar_list)) - 2] = '\n'.join(self.semantic_action_cache)
+                    self.semantic_action_cache = []
 
         for s in p:
             if s != self.epsilon and s != self.or_delimiter and s != self.prod_delimiter:
