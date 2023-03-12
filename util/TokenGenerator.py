@@ -17,3 +17,13 @@ class TokenGenerator:
         else:
             self.reach_end = True
             return Token('$', None)
+
+
+class FileTokenGenerator(TokenGenerator):
+    def __init__(self, file_path, token_expr):
+        super(FileTokenGenerator, self).__init__()
+
+
+class StringTokenGenerator(TokenGenerator):
+    def __init__(self, file_path, token_expr):
+        super().__init__(file_path, token_expr)

@@ -6,5 +6,5 @@ T -> T * F
   | T / F
   | F
 
-F -> NUM
+F -> NUMBER
   | ( E )

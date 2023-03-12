@@ -2,7 +2,7 @@ import unittest
 
 from LR.LR0 import closure, Item0, LRState, goto, canonical_lr0_collection, first, follow, slr1_table
 from LR.LR0Parser import LR0Parser
-from util.TokenGenerator import TokenGenerator
+from util.Lexer import Lexer, Token
 
 
 class LL1Test(unittest.TestCase):
@@ -82,10 +82,9 @@ class LL1Test(unittest.TestCase):
         action_table, goto_table = parser.slr1_table()
 
     def test6(self):
-        parser = LR0Parser('g6.bnf')
+        parser = LR0Parser('g5.bnf')
         parser.canonical_lr0_collection()
-        action_table, goto_table = parser.slr1_table()
-        file_path = 'f6'
+        parser.slr1_table()
         token_exprs = [
             (r'[ \n\t]+', None),
             (r'#[^\n]*', None),
@@ -98,5 +97,11 @@ class LL1Test(unittest.TestCase):
             (r'\/', '/'),
             (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
         ]
-        token_generator = TokenGenerator(file_path, token_exprs)
-        parser.parse(token_generator)
+        text = "1+2*3-((3/4)+3)"
+        lexer = Lexer(text, token_exprs)
+        inputs = []
+        while lexer.has_next():
+            inputs.append(lexer.next())
+        inputs.append(Token('$', None))
+
+        parser.parse(inputs)

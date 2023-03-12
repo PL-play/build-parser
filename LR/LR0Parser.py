@@ -335,7 +335,7 @@ class LR0Parser:
 
         print(x)
 
-    def parse(self, token_generator):
+    def parse(self, tokens: list[Token]):
         """
         push $
         push start state s0
@@ -358,11 +358,12 @@ class LR0Parser:
         report success
 
         https://serokell.io/blog/how-to-implement-lr1-parser
-        :param token_generator:
+        :param tokens:
         :return:
         """
         stack = [(0, Token(self.eof, None))]
-        word = token_generator.next_token()
+        pos = 0
+        word = tokens[pos]
         print(f"input: {word}")
         while True:
             print(stack)
@@ -379,7 +380,8 @@ class LR0Parser:
                 stack.append(new_state)
             elif self.parsing_table[key][0] == 's':
                 stack.append((self.parsing_table[key][1], word))
-                word = token_generator.next_token()
+                pos += 1
+                word = tokens[pos]
                 print(f"input: {word}")
             elif self.parsing_table[key][0] == 'acc':
                 print("Accepted!")
