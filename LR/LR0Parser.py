@@ -357,34 +357,75 @@ class LR0Parser:
                 Fail()
         report success
 
+
+        +------+--------------+-------------+----------------+----------------------+
+        |      |    STACK     |   SYMBOLS   |     INPUT      |        ACTION        |
+        +------+--------------+-------------+----------------+----------------------+
+        |  (1) | 0            |             | id + id * id $ | shift                |
+        |  (2) | 0 2          |  id         |    + id * id $ | reduce by F -> id    |
+        |  (3) | 0 4          |  F          |    + id * id $ | reduce by T -> F     |
+        |  (4) | 0 3          |  T          |    + id * id $ | reduce by E -> T     |
+        |  (5) | 0 1          |  E          |    + id * id $ | shift                |
+        |  (6) | 0 1 6        |  E +        |      id * id $ | shift                |
+        |  (7) | 0 1 6 2      |  E + id     |         * id $ | reduce by F -> id    |
+        |  (8) | 0 1 6 4      |  E + F      |         * id $ | reduce by T -> F     |
+        |  (9) | 0 1 6 9      |  E + T      |         * id $ | shift                |
+        | (10) | 0 1 6 9 7    |  E + T *    |           id $ | shift                |
+        | (11) | 0 1 6 9 7 2  |  E + T * id |              $ | reduce by F -> id    |
+        | (12) | 0 1 6 9 7 10 |  E + T * F  |              $ | reduce by T -> T * F |
+        | (13) | 0 1 6 9      |  E + T      |              $ | reduce by E -> E + T |
+        | (14) | 0 1          |  E          |              $ | accept               |
+        +------+--------------+-------------+----------------+----------------------+
+
         https://serokell.io/blog/how-to-implement-lr1-parser
         :param tokens:
         :return:
         """
-        stack = [(0, Token(self.eof, None))]
+        steps = []
+        stage = 0
+        stack = [(0, Token(self.eof, self.eof))]
         pos = 0
         word = tokens[pos]
-        print(f"input: {word}")
         while True:
-            print(stack)
+            # stage,stack,symbols,input,action
+            stage += 1
+            stack_ = " ".join([str(s[0]) for s in stack])
+            symbol_ = " ".join([s[1] if isinstance(s[1], str) else s[1].type for s in stack])
+            input_ = "".join([t.value for t in tokens[pos:]])
+            step = [stage, stack_, symbol_, input_]
             state = stack[-1]
             key = (state[0], word[0])
-            print(f"key {key}")
             if self.parsing_table[key][0] == 'r':
-                print('shift')
                 g = self.parsing_table[key][1]
                 lhs, rhs = self.grammar_list[g][0], self.grammar_list[g][1]
                 for _ in range(len(rhs)):
                     stack.pop()
-                new_state = (self.parsing_table[(stack[-1][0], lhs)], lhs)
+                goto_state = self.parsing_table[(stack[-1][0], lhs)]
+                new_state = (goto_state, lhs)
                 stack.append(new_state)
+                r = self.parsing_table[key]
+                step.append(f"{r[0]}{r[1]}: reduce by {lhs} -> {' '.join(rhs)},goto {goto_state}")
+                steps.append(step)
             elif self.parsing_table[key][0] == 's':
-                stack.append((self.parsing_table[key][1], word))
+                goto_state = self.parsing_table[key][1]
+                stack.append((goto_state, word))
+                s = self.parsing_table[key]
+                step.append(f'{s[0]}{s[1]}: shift {word.type},goto {goto_state}')
+                steps.append(step)
                 pos += 1
                 word = tokens[pos]
-                print(f"input: {word}")
             elif self.parsing_table[key][0] == 'acc':
-                print("Accepted!")
+                step.append('accept')
+                steps.append(step)
                 break
             else:
                 raise AssertionError("Parse failed")
+
+        self.print_parsing_steps(steps)
+
+    def print_parsing_steps(self, steps: list):
+        x = PrettyTable()
+        x.title = 'Parsing Steps'
+        x.field_names = ['STAGE', 'STACK', 'SYMBOLS', 'INPUT', 'ACTION']
+        x.add_rows(steps)
+        print(x)

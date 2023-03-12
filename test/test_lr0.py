@@ -102,6 +102,6 @@ class LL1Test(unittest.TestCase):
         inputs = []
         while lexer.has_next():
             inputs.append(lexer.next())
-        inputs.append(Token('$', None))
+        inputs.append(Token('$', '$'))
 
         parser.parse(inputs)
