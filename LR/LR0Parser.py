@@ -275,6 +275,10 @@ class LR0Parser:
         for s in self.lr0_states:
             for item in s.items:
                 next_symbol = item.peek_dot_right()
+                if (s.name, next_symbol) in action_table:
+                    raise AssertionError(
+                        f'parsing table conflict,{(s.name, next_symbol)} : {self.lr0_trans_function[(s.name, next_symbol)]} / '
+                        f'{action_table[(s.name, next_symbol)]}')
                 if self.is_terminal(next_symbol):
                     action_table[(s.name, next_symbol)] = ('s', self.lr0_trans_function[(s.name, next_symbol)])
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
