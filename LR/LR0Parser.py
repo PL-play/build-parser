@@ -271,6 +271,7 @@ class LR0Parser:
         :param trans_map:
         :return:
         """
+        conflict = False
         self.print_grammar()
         action_table = {}
         goto_table = {}
@@ -278,17 +279,38 @@ class LR0Parser:
         for s in self.lr0_states:
             for item in s.items:
                 next_symbol = item.peek_dot_right()
-                if (s.name, next_symbol) in action_table:
-                    raise AssertionError(
-                        f'parsing table conflict,{(s.name, next_symbol)} : {self.lr0_trans_function[(s.name, next_symbol)]} / '
-                        f'{action_table[(s.name, next_symbol)]}')
+                key = (s.name, next_symbol)
                 if self.is_terminal(next_symbol):
-                    action_table[(s.name, next_symbol)] = ('s', self.lr0_trans_function[(s.name, next_symbol)])
+                    old = action_table.get(key, None)
+                    if old:
+                        conflict = True
+                        if isinstance(old, list):
+                            old.append(('s', self.lr0_trans_function[key]))
+                        else:
+                            action_table[key] = [old, ('s', self.lr0_trans_function[key])]
+                    else:
+                        action_table[key] = ('s', self.lr0_trans_function[key])
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
                     for f in self.follow_set[item.lhs]:
-                        action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
+                        old = action_table.get((s.name, f), None)
+                        if old:
+                            conflict = True
+                            if isinstance(old, list):
+                                old.append(('r', self.lookup_grammar(item.lhs, item.rule)))
+                            else:
+                                action_table[(s.name, f)] = [old, ('r', self.lookup_grammar(item.lhs, item.rule))]
+                        else:
+                            action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
                 elif next_symbol == self.eof and item.lhs == self.start_symbol:
-                    action_table[(s.name, next_symbol)] = ('acc',)
+                    old = action_table.get(key, None)
+                    if old:
+                        conflict = True
+                        if isinstance(old, list):
+                            old.append(('acc',))
+                        else:
+                            action_table[key] = [old, ('acc',)]
+                    else:
+                        action_table[key] = ('acc',)
         for s in self.lr0_states:
             for nt in self.non_terminals:
                 key = (s.name, nt)
@@ -297,6 +319,8 @@ class LR0Parser:
         self.action_table = action_table
         self.goto_table = goto_table
         self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
+        if conflict:
+            raise AssertionError(f'parsing table conflict')
         self.parsing_table = dict(action_table.items() | goto_table.items())
         return action_table, goto_table
 
@@ -333,7 +357,11 @@ class LR0Parser:
             for index, t in enumerate(terminals):
                 if (s.name, t) in action_table:
                     action = action_table[(s.name, t)]
-                    row[index + 1] = f"{action[0]}{action[1] if len(action) > 1 else ''}"
+                    if not isinstance(action, list):
+                        row[index + 1] = f"{action[0]}{action[1] if len(action) > 1 else ''}"
+                    else:
+                        content = [f"{a[0]}{a[1] if len(a) > 1 else ''}" for a in action]
+                        row[index + 1] = '/'.join(content)
             for index, nt in enumerate(non_terminals):
                 if (s.name, nt) in goto_table:
                     goto = goto_table[(s.name, nt)]

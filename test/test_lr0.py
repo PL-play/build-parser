@@ -105,3 +105,8 @@ class LL1Test(unittest.TestCase):
         inputs.append(Token('$', '$'))
 
         parser.parse(inputs)
+
+    def test7(self):
+        parser = LR0Parser('g7.bnf')
+        parser.canonical_lr0_collection()
+        action_table, goto_table = parser.slr1_table()
