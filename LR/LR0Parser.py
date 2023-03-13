@@ -110,12 +110,14 @@ class LR0Parser:
 
         print(x)
 
-    def graph_state(self, states: list[LRState], trans: dict[tuple:int]):
+    def graph_state(self, states: list[LRState], trans: dict[tuple:int], parsing_table: dict):
         dot = Digraph("state transaction", node_attr={'shape': 'box'}, engine='neato')
         # dot.attr(rankdir='LR')
         # dot.attr(splines='ortho')
+        # true则用样条曲线画边，polyline则用折线，ortho则用垂直或水平的折线，false或line则线段，dot默认true，其它默认false。
         dot.attr(splines='true')
         # dot.attr(overlap="false")
+        # 若结点相交，mode为”false”时调整结点，mode为”scale”时放大布局，mode为”true”时容许相交（默认）（用于twopi）
         dot.attr(overlap="scale")
         # dot.attr(size='10,10')
 
@@ -123,8 +125,27 @@ class LR0Parser:
             label = list([str(i) for i in s.items])
             label.insert(0, f"State {s.name}\n")
             dot.node(f"{s.name}", '\n'.join(label))
-        for k in trans:
-            dot.edge(f"{k[0]}", f"{trans[k]}", f"{k[1]}", constraint='false', fontcolor="blue")
+
+        for k in parsing_table:
+            s, e = k[0], k[1]
+            v = parsing_table[k]
+            if not isinstance(v, list):
+                if isinstance(v, int):
+                    dot.edge(f"{s}", f"{v}", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
+                elif v == ('acc',):
+                    dot.node(f"acc", "ACCEPT", color="green")
+                    dot.edge(f"{s}", f"acc", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
+                else:
+                    action = v[0]
+                    t = v[1]
+                    dot.edge(f"{s}", f"{t}", f"[{action}] {e}", constraint='false', minlen="1.5", fontcolor="blue")
+            else:
+                for a in v:
+                    action = a[0]
+                    t = a[1]
+                    dot.edge(f"{s}", f"{t}", f"[{action}] {e}", constraint='false', minlen="1.5", color='red',
+                             fontcolor="red")
+
         dot.view()
 
     # dot.render('test.gv', view=True)
@@ -265,8 +286,8 @@ class LR0Parser:
                     trans_map[(state.name, s)] = index
         self.lr0_states = states
         self.lr0_trans_function = trans_map
-        self.print_state(states, trans_map)
-        self.graph_state(states, trans_map)
+        # self.print_state(states, trans_map)
+        # self.graph_state(states, trans_map)
         return states, trans_map
 
     def slr1_table(self) -> tuple[dict, dict]:
@@ -340,10 +361,13 @@ class LR0Parser:
                     goto_table[key] = self.lr0_trans_function[key]
         self.action_table = action_table
         self.goto_table = goto_table
+
         self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
+        self.parsing_table = {**action_table, **goto_table}
+        self.graph_state(self.lr0_states, self.lr0_trans_function, self.parsing_table)
         if conflict:
             raise AssertionError(f'parsing table conflict')
-        self.parsing_table = dict(action_table.items() | goto_table.items())
+
         return action_table, goto_table
 
     def lookup_grammar(self, lhs: str, rhs: tuple) -> int:
