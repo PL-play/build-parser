@@ -426,6 +426,7 @@ class LR0Parser:
                 raise AssertionError("Parse failed")
 
         self.print_parsing_steps(steps)
+        print("AST:")
         print(json.dumps(value_stack.pop()))
 
     def print_parsing_steps(self, steps: list):
