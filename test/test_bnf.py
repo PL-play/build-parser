@@ -19,6 +19,6 @@ class LL1Test(unittest.TestCase):
         semantic_action = builder.semantic_action[0].strip()[1:-1].strip()
         print(semantic_action)
 
-        v = {"p1": 2, "p3": 5, "result": None}
+        v = {"p1": 2, "p2": "+", "p3": 5, "result": None}
         exec(semantic_action, v)
         print(v.get('result'))

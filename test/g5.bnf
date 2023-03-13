@@ -1,17 +1,52 @@
 E -> E + T
  {
     result = {
-      "type":"add",
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
+  | E - T
+{
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
       "left":p1,
       "right":p3
     }
  }
-  | E - T
   | T
+{result=p1}
+
 
 T -> T * F
+{
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
   | T / F
+{
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
   | F
+{result=p1}
 
 F -> NUMBER
+{
+    result = {
+      "type":"NumericLiteral",
+      "value":p1
+    }
+}
   | ( E )
+{result=p2}
