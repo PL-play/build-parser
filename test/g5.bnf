@@ -1,11 +1,12 @@
 E -> E + T
-  {
-    11
-  }
+ {
+    result = {
+      "type":"add",
+      "left":p1,
+      "right":p3
+    }
+ }
   | E - T
-  {
-   22
-  }
   | T
 
 T -> T * F
@@ -13,8 +14,4 @@ T -> T * F
   | F
 
 F -> NUMBER
-   {77}
   | ( E )
-  {
-    88
-  }

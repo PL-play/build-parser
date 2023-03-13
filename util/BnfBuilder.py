@@ -47,7 +47,6 @@ class BnfBuilder:
             self.semantic_action[-1] = ''.join(self.semantic_action_cache)
             self.semantic_action_cache = []
         self.terminals = self.symbols - self.non_terminals
-        print(f"semantic action: {self.semantic_action}")
 
     def _find_index(self, p: list, item) -> int:
         for index, s in enumerate(p):
