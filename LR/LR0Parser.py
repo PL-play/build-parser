@@ -1,4 +1,5 @@
 import copy
+import json
 
 from prettytable import PrettyTable, ALL
 
@@ -80,6 +81,7 @@ class LR0Parser:
         self.bnf_builder.build()
         self.grammar = self.bnf_builder.production_map
         self.grammar_list = self.bnf_builder.grammar_list
+        self.semantic_action = self.bnf_builder.semantic_action
         self.non_terminals = self.bnf_builder.non_terminals
         self.terminals = self.bnf_builder.terminals
         self.epsilon = self.bnf_builder.epsilon
@@ -143,6 +145,7 @@ class LR0Parser:
         self.follow_set[new_start] = set(self.eof)
         self.init_state = LRState(0, (self.closure([Item0(f"{new_start}", (old_start,), 0)])))
         self.grammar_list.insert(0, (new_start, (old_start,)))
+        self.semantic_action.insert(0, None)
 
     def is_terminal(self, symbol: str) -> bool:
         return symbol in self.terminals
@@ -370,6 +373,7 @@ class LR0Parser:
         stack = [(0, Token(self.eof, self.eof))]
         pos = 0
         word = tokens[pos]
+        value_stack = []
         while True:
             # stage,stack,symbols,input,action
             stage += 1
@@ -382,8 +386,23 @@ class LR0Parser:
             if self.parsing_table[key][0] == 'r':
                 g = self.parsing_table[key][1]
                 lhs, rhs = self.grammar_list[g][0], self.grammar_list[g][1]
+                values = []
                 for _ in range(len(rhs)):
                     stack.pop()
+                    values.append(value_stack.pop())
+                values.reverse()
+                semantic_action = self.semantic_action[g]
+                if semantic_action:
+                    semantic_action = semantic_action.strip()[1:-1].strip()
+                else:
+                    semantic_action = """result={}"""
+                params = {
+                    "result": None,
+                }
+                for index, v in enumerate(values):
+                    params[f"p{index + 1}"] = v
+                exec(semantic_action, params)
+                value_stack.append(params.get("result"))
                 goto_state = self.parsing_table[(stack[-1][0], lhs)]
                 new_state = (goto_state, lhs)
                 stack.append(new_state)
@@ -393,6 +412,7 @@ class LR0Parser:
             elif self.parsing_table[key][0] == 's':
                 goto_state = self.parsing_table[key][1]
                 stack.append((goto_state, word))
+                value_stack.append(word.value)
                 s = self.parsing_table[key]
                 step.append(f'{s[0]}{s[1]}: shift {word.type},goto {goto_state}')
                 steps.append(step)
@@ -406,6 +426,7 @@ class LR0Parser:
                 raise AssertionError("Parse failed")
 
         self.print_parsing_steps(steps)
+        print(json.dumps(value_stack.pop()))
 
     def print_parsing_steps(self, steps: list):
         x = PrettyTable()
