@@ -1,6 +1,7 @@
 import copy
 import json
 
+from graphviz import Digraph
 from prettytable import PrettyTable, ALL
 
 from util.BnfBuilder import BnfBuilder
@@ -28,8 +29,8 @@ class Item0:
 
     def __str__(self) -> str:
         s = [r for r in self.rule]
-        s.insert(self.pos, '⊙')
-        return f"{self.lhs}: {''.join(s)}"
+        s.insert(self.pos, ' . ')
+        return f"{self.lhs} -> {''.join(s)}"
 
     def __repr__(self):
         return self.__str__()
@@ -108,6 +109,25 @@ class LR0Parser:
             x.add_row([nt, f" {' '.join(self.first_set[nt])} ", f" {' '.join(self.follow_set[nt])} "])
 
         print(x)
+
+    def graph_state(self, states: list[LRState], trans: dict[tuple:int]):
+        dot = Digraph("state transaction", node_attr={'shape': 'box'}, engine='neato')
+        # dot.attr(rankdir='LR')
+        # dot.attr(splines='ortho')
+        dot.attr(splines='true')
+        # dot.attr(overlap="false")
+        dot.attr(overlap="scale")
+        # dot.attr(size='10,10')
+
+        for s in states:
+            label = list([str(i) for i in s.items])
+            label.insert(0, f"State {s.name}\n")
+            dot.node(f"{s.name}", '\n'.join(label))
+        for k in trans:
+            dot.edge(f"{k[0]}", f"{trans[k]}", f"{k[1]}", constraint='false', fontcolor="blue")
+        dot.view()
+
+    # dot.render('test.gv', view=True)
 
     def print_state(self, states: list[LRState], trans: dict[tuple:int]):
         print('LR0 states')
@@ -246,6 +266,7 @@ class LR0Parser:
         self.lr0_states = states
         self.lr0_trans_function = trans_map
         self.print_state(states, trans_map)
+        self.graph_state(states, trans_map)
         return states, trans_map
 
     def slr1_table(self) -> tuple[dict, dict]:
@@ -282,6 +303,7 @@ class LR0Parser:
                 key = (s.name, next_symbol)
                 if self.is_terminal(next_symbol):
                     old = action_table.get(key, None)
+                    # ambiguous grammar. Need precedence and associate
                     if old:
                         conflict = True
                         if isinstance(old, list):
