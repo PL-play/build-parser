@@ -79,12 +79,12 @@ class LL1Test(unittest.TestCase):
     def test5(self):
         parser = LR0Parser('g5.bnf')
         parser.canonical_lr0_collection()
-        action_table, goto_table = parser.slr1_table()
+        action_table, goto_table = parser.build_parse_table()
 
     def test6(self):
-        parser = LR0Parser('g6.bnf')
+        parser = LR0Parser('g5.bnf')
         parser.canonical_lr0_collection()
-        parser.slr1_table()
+        parser.build_parse_table()
         token_exprs = [
             (r'[ \n\t]+', None),
             (r'#[^\n]*', None),
@@ -109,7 +109,7 @@ class LL1Test(unittest.TestCase):
     def test7(self):
         parser = LR0Parser('g7.bnf')
         parser.canonical_lr0_collection()
-        action_table, goto_table = parser.slr1_table()
+        action_table, goto_table = parser.build_parse_table()
 
         token_exprs = [
             (r'[ \n\t]+', None),

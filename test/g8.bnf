@@ -1,0 +1,5 @@
+S -> a A d
+    | b A c
+    | a e c
+    | b e d
+A -> e

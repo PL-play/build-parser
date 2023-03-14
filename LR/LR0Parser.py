@@ -308,7 +308,10 @@ class LR0Parser:
                     return i, p[0]
         return None, None
 
-    def slr1_table(self) -> tuple[dict, dict]:
+    def lookahead_symbols(self, item: [Item0]):
+        return self.follow_set[item.lhs]
+
+    def build_parse_table(self) -> tuple[dict, dict]:
         """
         SLR 解析表是基于上面的 LR(0) 自动机制作的。我们知道 SLR 表有两个部分，一个部分是 Action 表，另外一部分是 Goto 表。
 
@@ -343,6 +346,8 @@ class LR0Parser:
                     old = action_table.get(key, None)
                     # ambiguous grammar. Need precedence and associate
                     if old:
+                        if old == ('s', self.lr0_trans_function[key]):
+                            continue
                         if isinstance(old, list):
                             old.append(('s', self.lr0_trans_function[key]))
                         else:
@@ -350,9 +355,11 @@ class LR0Parser:
                     else:
                         action_table[key] = ('s', self.lr0_trans_function[key])
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
-                    for f in self.follow_set[item.lhs]:
+                    for f in self.lookahead_symbols(item):
                         old = action_table.get((s.name, f), None)
                         if old:
+                            if old == ('r', self.lookup_grammar(item.lhs, item.rule)):
+                                continue
                             if isinstance(old, list):
                                 old.append(('r', self.lookup_grammar(item.lhs, item.rule)))
                             else:
