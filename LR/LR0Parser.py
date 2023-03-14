@@ -121,10 +121,18 @@ class LR0Parser:
         dot.attr(overlap="scale")
         # dot.attr(size='10,10')
 
+        conflict_states = set()
+        for k in parsing_table:
+            if isinstance(parsing_table[k], list):
+                conflict_states.add(k[0])
+
         for s in states:
             label = list([str(i) for i in s.items])
             label.insert(0, f"State {s.name}\n")
-            dot.node(f"{s.name}", '\n'.join(label))
+            if s.name in conflict_states:
+                dot.node(f"{s.name}", '\n'.join(label), color='red')
+            else:
+                dot.node(f"{s.name}", '\n'.join(label))
 
         for k in parsing_table:
             s, e = k[0], k[1]
