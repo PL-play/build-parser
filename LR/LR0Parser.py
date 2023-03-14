@@ -1,6 +1,7 @@
 import copy
 import json
 
+import jsbeautifier
 from graphviz import Digraph
 from prettytable import PrettyTable, ALL
 
@@ -577,7 +578,9 @@ class LR0Parser:
 
         self.print_parsing_steps(steps)
         print("AST:")
-        print(json.dumps(value_stack.pop()))
+        opts = jsbeautifier.default_options()
+        opts.indent_size = 2
+        print(jsbeautifier.beautify(json.dumps(value_stack.pop()), opts))
 
     def print_parsing_steps(self, steps: list):
         x = PrettyTable()
