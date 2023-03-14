@@ -111,7 +111,7 @@ class LR0Parser:
 
         print(x)
 
-    def graph_state(self, states: list[LRState], trans: dict[tuple:int], parsing_table: dict):
+    def graph_state(self, states: list[LRState], trans: dict[tuple:int], acton_table: dict):
         dot = Digraph("state transaction", node_attr={'shape': 'box'}, engine='neato')
         # dot.attr(rankdir='LR')
         # dot.attr(splines='ortho')
@@ -123,9 +123,13 @@ class LR0Parser:
         # dot.attr(size='10,10')
 
         conflict_states = set()
-        for k in parsing_table:
-            if isinstance(parsing_table[k], list):
+        acc_from_node = None
+        for k in acton_table:
+            if isinstance(acton_table[k], list):
                 conflict_states.add(k[0])
+            if acton_table[k] == ('acc',):
+                dot.node(f"acc", 'accept', color='green')
+                acc_from_node = k[0]
 
         for s in states:
             label = list([str(i) for i in s.items])
@@ -134,26 +138,17 @@ class LR0Parser:
                 dot.node(f"{s.name}", '\n'.join(label), color='red')
             else:
                 dot.node(f"{s.name}", '\n'.join(label))
+        if acc_from_node:
+            dot.edge(f"{acc_from_node}", f"acc", f"$", constraint='false', minlen="1.5", fontcolor="blue")
 
-        for k in parsing_table:
+        for k in trans:
             s, e = k[0], k[1]
-            v = parsing_table[k]
-            if not isinstance(v, list):
-                if isinstance(v, int):
-                    dot.edge(f"{s}", f"{v}", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
-                elif v == ('acc',):
-                    dot.node(f"acc", "ACCEPT", color="green")
-                    dot.edge(f"{s}", f"acc", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
-                else:
-                    action = v[0]
-                    t = v[1]
-                    dot.edge(f"{s}", f"{t}", f"[{action}] {e}", constraint='false', minlen="1.5", fontcolor="blue")
-            else:
-                for a in v:
-                    action = a[0]
-                    t = a[1]
-                    dot.edge(f"{s}", f"{t}", f"[{action}] {e}", constraint='false', minlen="1.5", color='red',
-                             fontcolor="red")
+            v = trans[k]
+            if isinstance(v, int):
+                dot.edge(f"{s}", f"{v}", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
+            elif v == ('acc',):
+                dot.node(f"acc", "ACCEPT", color="green")
+                dot.edge(f"{s}", f"acc", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
 
         dot.view()
 
@@ -300,8 +295,8 @@ class LR0Parser:
         return states, trans_map
 
     def _rightmost_terminal(self, item) -> int:
-        for i in range(len(item.rule) - 1, -1, -1):
-            if self.is_terminal(item.rule[i]):
+        for i in range(len(item) - 1, -1, -1):
+            if self.is_terminal(item[i]):
                 return i
         return -1
 
@@ -330,17 +325,6 @@ class LR0Parser:
         遍历所有非终结符。如果对于某个非终结符 A，有 goto(Ii, A) = Ij，那么我们就把 GOTO[i, A] 设成 j——这样告诉解析器，归约了A之后，
         要切换到状态 j 接受新的输入。
         这样 Goto 和 Action 的构造就完成了。
-
-        消除文法的二义性
-
-        对于shift/reduce冲突
-        1. 给每一个终结符赋予一个优先级，例如 * 的优先级比 +的优先级要高。表达式的优先级与它最右边的终结符的优先级一致，如果表达式不含有终结符，
-        那么表达式的优先级为 0;
-        2. 当 shift/reduce 矛盾发生时，当前输入的终结符它的优先级要和做 reduce 操作的表达式的优先级做比较，如果他们的优先级一样，那么默认
-        选择做 shift 操作，如果当前输入的终结符优先级高，那么做 shift 操作，要不然做reduce 操作。
-
-        对于reduce/reduce冲突
-        1. 一般选择靠前的产生式规约
 
         :param states:
         :param trans_map:
@@ -390,15 +374,77 @@ class LR0Parser:
                     goto_table[key] = self.lr0_trans_function[key]
         self.action_table = action_table
         self.goto_table = goto_table
-
+        self.resolve_ambiguity()
         self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
         self.parsing_table = {**action_table, **goto_table}
-        self.graph_state(self.lr0_states, self.lr0_trans_function, self.parsing_table)
+        self.graph_state(self.lr0_states, self.lr0_trans_function, self.action_table)
         for k in self.parsing_table:
             if isinstance(self.parsing_table[k], list):
                 raise AssertionError(f'parsing table conflict')
 
         return action_table, goto_table
+
+    def resolve_ambiguity(self):
+        """
+        消除文法的二义性
+
+        对于shift/reduce冲突
+        1. 给每一个终结符赋予一个优先级，例如 * 的优先级比 +的优先级要高。表达式的优先级与它最右边的终结符的优先级一致，如果表达式不含有终结符，
+        那么表达式的优先级为 0;
+        2. 当 shift/reduce 矛盾发生时，当前输入的终结符它的优先级要和做 reduce 操作的表达式的优先级做比较，如果他们的优先级一样，那么默认
+        选择做 shift 操作，如果当前输入的终结符优先级高，那么做 shift 操作，要不然做reduce 操作。
+
+        对于reduce/reduce冲突
+        1. 一般选择位置高的产生式规约
+        :return:
+        """
+        if len(self.precedence) == 0:
+            return
+
+        for key in self.action_table:
+            state, terminal = key[0], key[1]
+            action = self.action_table[key]
+            if not isinstance(action, list):
+                continue
+            if isinstance(action, list) and len(action) != 2:
+                continue
+            precedence, association = self._precedence(terminal)
+            if precedence is None:
+                continue
+            a0, a1 = action[0], action[1]
+            # shift/reduce conflict
+            if a0[0] == 's' and a1[0] == 'r' or a0[0] == 'r' and a1[0] == 's':
+                if a0[0] == 'r':
+                    # make a0 shift and a1 reduce
+                    a0, a1 = a1, a0
+
+                lhs, rhs = self.grammar_list[a1[1]]
+                # no terminal
+                i = self._rightmost_terminal(rhs)
+                if i == -1:
+                    precedence2, association2 = i, None
+                else:
+                    precedence2, association2 = self._precedence(rhs[i])
+                if precedence2 is None:
+                    continue
+                # current symbol precedence > expression precedence, shift
+                if precedence > precedence2:
+                    self.action_table[key] = a0
+                # same precedence, look at association
+                elif precedence == precedence2:
+                    # reduce
+                    if association == 'left':
+                        self.action_table[key] = a1
+                    else:
+                        # shift
+                        self.action_table[key] = a0
+                else:
+                    # current symbol precedence < expression precedence, reduce
+                    self.action_table[key] = a1
+            # reduce/reduce conflict
+            elif a0[0] == 'r' and a1[0] == 'r':
+                # choose top grammar
+                self.action_table[key] = a0 if a0[1] < a1[1] else a1
 
     def lookup_grammar(self, lhs: str, rhs: tuple) -> int:
         for index, g in enumerate(self.grammar_list):

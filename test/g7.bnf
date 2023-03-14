@@ -1,6 +1,43 @@
-%left +
-%left *
+%left + -
+%left * /
 
-E -> E + T
+E -> E + E
+ {
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
+  | E - E
+ {
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
   | E * E
+ {
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
+  | E / E
+ {
+    result = {
+      "type":"BinaryExpression",
+      "op":p2,
+      "left":p1,
+      "right":p3
+    }
+}
+  | ( E )
+{result=p2}
   | NUMBER
+{result=p1}

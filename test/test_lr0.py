@@ -82,7 +82,7 @@ class LL1Test(unittest.TestCase):
         action_table, goto_table = parser.slr1_table()
 
     def test6(self):
-        parser = LR0Parser('g5.bnf')
+        parser = LR0Parser('g6.bnf')
         parser.canonical_lr0_collection()
         parser.slr1_table()
         token_exprs = [
@@ -97,7 +97,7 @@ class LL1Test(unittest.TestCase):
             (r'\/', '/'),
             (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
         ]
-        text = "1+2*3-((3/4)+3)"
+        text = "1+3*4"
         lexer = Lexer(text, token_exprs)
         inputs = []
         while lexer.has_next():
@@ -123,7 +123,7 @@ class LL1Test(unittest.TestCase):
             (r'\/', '/'),
             (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
         ]
-        text = "1+2"
+        text = "1+2*3"
         lexer = Lexer(text, token_exprs)
         inputs = []
         while lexer.has_next():
