@@ -27,6 +27,7 @@ class BnfBuilder:
         self.grammar_list = []
         self.semantic_action_cache = []
         self.semantic_action = []
+        self.precedence = []
 
     def build_first_set(self):
         self.first_set = self.first(self.production_map, epsilon_symbol=self.epsilon)
@@ -59,6 +60,12 @@ class BnfBuilder:
             return
         if p[0] == self.comment_symbol:
             return
+        if p[0] == '%left' or p[0] == '%right':
+            ps = []
+            for s in p[1:]:
+                ps.append((p[0][1:], s))
+            self.precedence.append(ps)
+            return
         d_index = self._find_index(p, self.prod_delimiter)
         if d_index == -1:
             if not self.current_non_terminal:
@@ -73,7 +80,7 @@ class BnfBuilder:
                 self.grammar_list.append((self.current_non_terminal, (self.epsilon,)))
                 self.semantic_action.append(None)
                 if self.semantic_action_cache:
-                    self.semantic_action[len(self.grammar_list) - 2]=''.join(self.semantic_action_cache)
+                    self.semantic_action[len(self.grammar_list) - 2] = ''.join(self.semantic_action_cache)
                     self.semantic_action_cache = []
 
             else:
@@ -83,7 +90,6 @@ class BnfBuilder:
                 if self.semantic_action_cache:
                     self.semantic_action[len(self.grammar_list) - 2] = ''.join(self.semantic_action_cache)
                     self.semantic_action_cache = []
-
 
         else:
             if d_index != 1:

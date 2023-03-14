@@ -321,7 +321,6 @@ class LR0Parser:
         :param trans_map:
         :return:
         """
-        conflict = False
         self.print_grammar()
         action_table = {}
         goto_table = {}
@@ -334,7 +333,6 @@ class LR0Parser:
                     old = action_table.get(key, None)
                     # ambiguous grammar. Need precedence and associate
                     if old:
-                        conflict = True
                         if isinstance(old, list):
                             old.append(('s', self.lr0_trans_function[key]))
                         else:
@@ -345,7 +343,6 @@ class LR0Parser:
                     for f in self.follow_set[item.lhs]:
                         old = action_table.get((s.name, f), None)
                         if old:
-                            conflict = True
                             if isinstance(old, list):
                                 old.append(('r', self.lookup_grammar(item.lhs, item.rule)))
                             else:
@@ -355,7 +352,6 @@ class LR0Parser:
                 elif next_symbol == self.eof and item.lhs == self.start_symbol:
                     old = action_table.get(key, None)
                     if old:
-                        conflict = True
                         if isinstance(old, list):
                             old.append(('acc',))
                         else:
@@ -373,8 +369,9 @@ class LR0Parser:
         self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
         self.parsing_table = {**action_table, **goto_table}
         self.graph_state(self.lr0_states, self.lr0_trans_function, self.parsing_table)
-        if conflict:
-            raise AssertionError(f'parsing table conflict')
+        for k in self.parsing_table:
+            if isinstance(self.parsing_table[k], list):
+                raise AssertionError(f'parsing table conflict')
 
         return action_table, goto_table
 

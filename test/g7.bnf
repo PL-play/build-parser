@@ -1,3 +1,6 @@
+%left +
+%left *
+
 E -> E + T
   | E * E
   | ( E )
