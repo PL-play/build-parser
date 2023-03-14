@@ -139,16 +139,16 @@ class LR0Parser:
             else:
                 dot.node(f"{s.name}", '\n'.join(label))
         if acc_from_node:
-            dot.edge(f"{acc_from_node}", f"acc", f"$", constraint='false', minlen="1.5", fontcolor="blue")
+            dot.edge(f"{acc_from_node}", f"acc", f"$", constraint='false', fontcolor="blue")
 
         for k in trans:
             s, e = k[0], k[1]
             v = trans[k]
             if isinstance(v, int):
-                dot.edge(f"{s}", f"{v}", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
+                dot.edge(f"{s}", f"{v}", f"{e}", constraint='false', fontcolor="blue")
             elif v == ('acc',):
                 dot.node(f"acc", "ACCEPT", color="green")
-                dot.edge(f"{s}", f"acc", f"{e}", constraint='false', minlen="1.5", fontcolor="blue")
+                dot.edge(f"{s}", f"acc", f"{e}", constraint='false', fontcolor="blue")
 
         dot.view()
 
