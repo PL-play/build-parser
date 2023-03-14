@@ -3,5 +3,4 @@
 
 E -> E + T
   | E * E
-  | ( E )
   | NUMBER

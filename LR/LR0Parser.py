@@ -361,27 +361,7 @@ class LR0Parser:
                         if isinstance(old, list):
                             old.append(('s', self.lr0_trans_function[key]))
                         else:
-                            # eliminate ambiguity by precedence and association
-                            p1 = self._precedence(next_symbol)
-                            if p1 and old[0] == 'r':
-                                # find the right most non terminal of expression
-                                index = self._rightmost_terminal(item)
-                                # same precedence, look at associate
-                                if index == p1[0]:
-                                    association = p1[1]
-                                    # reduce if left association
-                                    if association == 'left':
-                                        action_table[key] = old
-                                    # shift if right association
-                                    elif association == 'right':
-                                        action_table[key] = ('s', self.lr0_trans_function[key])
-                                # shift if current precedence higher than expression precedence
-                                elif p1[0] > index:
-                                    action_table[key] = ('s', self.lr0_trans_function[key])
-                                else:
-                                    action_table[key] = old
-                            else:
-                                action_table[key] = [old, ('s', self.lr0_trans_function[key])]
+                            action_table[key] = [old, ('s', self.lr0_trans_function[key])]
                     else:
                         action_table[key] = ('s', self.lr0_trans_function[key])
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
@@ -391,27 +371,7 @@ class LR0Parser:
                             if isinstance(old, list):
                                 old.append(('r', self.lookup_grammar(item.lhs, item.rule)))
                             else:
-                                # eliminate ambiguity by precedence and association
-                                p1 = self._precedence(next_symbol)
-                                if p1 and old[0] == 's':
-                                    # find the right most non terminal of expression
-                                    index = self._rightmost_terminal(item)
-                                    # same precedence, look at associate
-                                    if index == p1[0]:
-                                        association = p1[1]
-                                        # reduce if left association
-                                        if association == 'left':
-                                            action_table[key] = ('r', self.lookup_grammar(item.lhs, item.rule))
-                                        # shift if right association
-                                        elif association == 'right':
-                                            action_table[key] = old
-                                    # shift if current precedence higher than expression precedence
-                                    elif p1[0] > index:
-                                        action_table[key] = old
-                                    else:
-                                        action_table[key] = ('r', self.lookup_grammar(item.lhs, item.rule))
-                                else:
-                                    action_table[(s.name, f)] = [old, ('r', self.lookup_grammar(item.lhs, item.rule))]
+                                action_table[(s.name, f)] = [old, ('r', self.lookup_grammar(item.lhs, item.rule))]
                         else:
                             action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
                 elif next_symbol == self.eof and item.lhs == self.start_symbol:
