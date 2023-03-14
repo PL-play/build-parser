@@ -87,6 +87,7 @@ class LR0Parser:
         self.terminals = self.bnf_builder.terminals
         self.epsilon = self.bnf_builder.epsilon
         self.start_symbol = self.bnf_builder.start_symbol
+        self.precedence = self.bnf_builder.precedence
         self.eof = eof
         self.lr0_states = None
         self.lr0_trans_function = None
@@ -298,6 +299,19 @@ class LR0Parser:
         # self.graph_state(states, trans_map)
         return states, trans_map
 
+    def _rightmost_terminal(self, item) -> int:
+        for i in range(len(item.rule) - 1, -1, -1):
+            if self.is_terminal(item.rule[i]):
+                return i
+        return -1
+
+    def _precedence(self, terminal) -> tuple:
+        for i, ps in enumerate(self.precedence):
+            for p in ps:
+                if p[1] == terminal:
+                    return i, p[0]
+        return None, None
+
     def slr1_table(self) -> tuple[dict, dict]:
         """
         SLR 解析表是基于上面的 LR(0) 自动机制作的。我们知道 SLR 表有两个部分，一个部分是 Action 表，另外一部分是 Goto 表。
@@ -316,6 +330,17 @@ class LR0Parser:
         遍历所有非终结符。如果对于某个非终结符 A，有 goto(Ii, A) = Ij，那么我们就把 GOTO[i, A] 设成 j——这样告诉解析器，归约了A之后，
         要切换到状态 j 接受新的输入。
         这样 Goto 和 Action 的构造就完成了。
+
+        消除文法的二义性
+
+        对于shift/reduce冲突
+        1. 给每一个终结符赋予一个优先级，例如 * 的优先级比 +的优先级要高。表达式的优先级与它最右边的终结符的优先级一致，如果表达式不含有终结符，
+        那么表达式的优先级为 0;
+        2. 当 shift/reduce 矛盾发生时，当前输入的终结符它的优先级要和做 reduce 操作的表达式的优先级做比较，如果他们的优先级一样，那么默认
+        选择做 shift 操作，如果当前输入的终结符优先级高，那么做 shift 操作，要不然做reduce 操作。
+
+        对于reduce/reduce冲突
+        1. 一般选择靠前的产生式规约
 
         :param states:
         :param trans_map:
@@ -336,7 +361,27 @@ class LR0Parser:
                         if isinstance(old, list):
                             old.append(('s', self.lr0_trans_function[key]))
                         else:
-                            action_table[key] = [old, ('s', self.lr0_trans_function[key])]
+                            # eliminate ambiguity by precedence and association
+                            p1 = self._precedence(next_symbol)
+                            if p1 and old[0] == 'r':
+                                # find the right most non terminal of expression
+                                index = self._rightmost_terminal(item)
+                                # same precedence, look at associate
+                                if index == p1[0]:
+                                    association = p1[1]
+                                    # reduce if left association
+                                    if association == 'left':
+                                        action_table[key] = old
+                                    # shift if right association
+                                    elif association == 'right':
+                                        action_table[key] = ('s', self.lr0_trans_function[key])
+                                # shift if current precedence higher than expression precedence
+                                elif p1[0] > index:
+                                    action_table[key] = ('s', self.lr0_trans_function[key])
+                                else:
+                                    action_table[key] = old
+                            else:
+                                action_table[key] = [old, ('s', self.lr0_trans_function[key])]
                     else:
                         action_table[key] = ('s', self.lr0_trans_function[key])
                 elif next_symbol == self.eof and item.lhs != self.start_symbol:
@@ -346,7 +391,27 @@ class LR0Parser:
                             if isinstance(old, list):
                                 old.append(('r', self.lookup_grammar(item.lhs, item.rule)))
                             else:
-                                action_table[(s.name, f)] = [old, ('r', self.lookup_grammar(item.lhs, item.rule))]
+                                # eliminate ambiguity by precedence and association
+                                p1 = self._precedence(next_symbol)
+                                if p1 and old[0] == 's':
+                                    # find the right most non terminal of expression
+                                    index = self._rightmost_terminal(item)
+                                    # same precedence, look at associate
+                                    if index == p1[0]:
+                                        association = p1[1]
+                                        # reduce if left association
+                                        if association == 'left':
+                                            action_table[key] = ('r', self.lookup_grammar(item.lhs, item.rule))
+                                        # shift if right association
+                                        elif association == 'right':
+                                            action_table[key] = old
+                                    # shift if current precedence higher than expression precedence
+                                    elif p1[0] > index:
+                                        action_table[key] = old
+                                    else:
+                                        action_table[key] = ('r', self.lookup_grammar(item.lhs, item.rule))
+                                else:
+                                    action_table[(s.name, f)] = [old, ('r', self.lookup_grammar(item.lhs, item.rule))]
                         else:
                             action_table[(s.name, f)] = ('r', self.lookup_grammar(item.lhs, item.rule))
                 elif next_symbol == self.eof and item.lhs == self.start_symbol:
