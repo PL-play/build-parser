@@ -1,5 +1,7 @@
 import copy
 
+from graphviz import Digraph
+
 from LR.LR0Parser import LR0Parser, Item0, LRState
 
 
@@ -102,3 +104,55 @@ class LR1Parser(LR0Parser):
 
     def lookahead_symbols(self, item: [Item1]):
         return [item.lookahead]
+
+    def graph_state(self, states: list[LRState], trans: dict[tuple:int], acton_table: dict):
+        dot = Digraph("state transaction", node_attr={'shape': 'box'}, engine='neato')
+        # dot.attr(rankdir='LR')
+        # dot.attr(splines='ortho')
+        # true则用样条曲线画边，polyline则用折线，ortho则用垂直或水平的折线，false或line则线段，dot默认true，其它默认false。
+        dot.attr(splines='true')
+        # dot.attr(overlap="false")
+        # 若结点相交，mode为”false”时调整结点，mode为”scale”时放大布局，mode为”true”时容许相交（默认）（用于twopi）
+        dot.attr(overlap="false")
+        # dot.attr(size='10,10')
+
+        conflict_states = set()
+        acc_from_node = None
+        for k in acton_table:
+            if isinstance(acton_table[k], list):
+                conflict_states.add(k[0])
+            if acton_table[k] == ('acc',):
+                dot.node(f"acc", 'accept', color='green')
+                acc_from_node = k[0]
+
+        for s in states:
+            items_dict = {}
+            for i in s.items:
+                k = [r for r in i.rule]
+                k.insert(i.pos, ' . ')
+                k = f"{i.lhs} -> {''.join(k)}"
+                if k not in items_dict:
+                    items_dict[k] = set(i.lookahead)
+                else:
+                    items_dict[k].add(i.lookahead)
+
+            label = list([f"{i}, {' '.join(items_dict[i])}" for i in items_dict.keys()])
+
+            label.insert(0, f"State {s.name}\n")
+            if s.name in conflict_states:
+                dot.node(f"{s.name}", '\n'.join(label), color='red')
+            else:
+                dot.node(f"{s.name}", '\n'.join(label))
+        if acc_from_node:
+            dot.edge(f"{acc_from_node}", f"acc", f"$", constraint='false', fontcolor="blue")
+
+        for k in trans:
+            s, e = k[0], k[1]
+            v = trans[k]
+            if isinstance(v, int):
+                dot.edge(f"{s}", f"{v}", f"{e}", constraint='false', fontcolor="blue")
+            elif v == ('acc',):
+                dot.node(f"acc", "ACCEPT", color="green")
+                dot.edge(f"{s}", f"acc", f"{e}", constraint='false', fontcolor="blue")
+
+        dot.view()
