@@ -32,6 +32,13 @@ class Item1(Item0):
         else:
             return list(self.rule[self.pos + 1:]) + [self.lookahead]
 
+    def split(self):
+        """
+        split LR1 item to LR0 item and lookahead symbol
+        :return:
+        """
+        return Item0(self.lhs, self.rule, self.pos, self.eof_symbol), self.lookahead
+
 
 class LR1Parser(LR0Parser):
     def __init__(self, bnf_file: str, eof: str = '$'):

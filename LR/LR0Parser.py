@@ -77,6 +77,10 @@ class LRState:
 
 
 class LR0Parser:
+    """
+
+    """
+
     def __init__(self, bnf_file: str, eof: str = '$'):
         self.bnf_file = bnf_file
         self.bnf_builder = BnfBuilder(bnf_file)
@@ -265,7 +269,7 @@ class LR0Parser:
                 return index
         return -1
 
-    def canonical_lr0_collection(self) -> tuple[list[LRState], dict[tuple:int]]:
+    def canonical_collection(self) -> tuple[list[LRState], dict[tuple:int]]:
         """
         到这个语法对应的规范-LR(0) 项集族；这个族中的每一个项集对应 LR(0) 自动机中的一个状态
         :param init_state:
@@ -349,6 +353,8 @@ class LR0Parser:
                         if old == ('s', self.lr0_trans_function[key]):
                             continue
                         if isinstance(old, list):
+                            if ('s', self.lr0_trans_function[key]) in old:
+                                continue
                             old.append(('s', self.lr0_trans_function[key]))
                         else:
                             action_table[key] = [old, ('s', self.lr0_trans_function[key])]
@@ -361,6 +367,8 @@ class LR0Parser:
                             if old == ('r', self.lookup_grammar(item.lhs, item.rule)):
                                 continue
                             if isinstance(old, list):
+                                if ('r', self.lookup_grammar(item.lhs, item.rule)) in old:
+                                    continue
                                 old.append(('r', self.lookup_grammar(item.lhs, item.rule)))
                             else:
                                 action_table[(s.name, f)] = [old, ('r', self.lookup_grammar(item.lhs, item.rule))]
