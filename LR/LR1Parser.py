@@ -34,7 +34,7 @@ class Item1(Item0):
 
 
 class LR1Parser(LR0Parser):
-    def __int__(self, bnf_file: str, eof: str = '$'):
+    def __init__(self, bnf_file: str, eof: str = '$'):
         super().__init__(bnf_file, eof)
 
     def augment_grammar(self):

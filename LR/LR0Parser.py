@@ -473,11 +473,11 @@ class LR0Parser:
     def print_parsing_table(self, action_table: dict, goto_table: dict, states: list[LRState], grammar: dict):
         x = PrettyTable()
 
-        x.title = 'SLR Parsing Table'
+        x.title = 'Parsing Table'
         terminals = list(self.terminals)
         terminals.append(self.eof)
         non_terminals = list(self.non_terminals - {self.start_symbol})
-        action_fields = ['action'] + terminals
+        action_fields = [''] + terminals
         goto_fields = ['goto'] + non_terminals
         x.field_names = action_fields + goto_fields
         x.hrules = ALL
