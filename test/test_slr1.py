@@ -1,23 +1,21 @@
 import unittest
 
-from LR.LALR1Parser import LALR1Parser
+from LR.LR0Parser import LR0Parser, Item0, LRState
+from LR.SLR1Parser import SLR1Parser
 from util.Lexer import Lexer, Token
 
 
-class LALR1Test(unittest.TestCase):
-    def test1(self):
-        parser = LALR1Parser('g9.bnf')
-        states, trans_map = parser.canonical_collection()
+class SLR1Test(unittest.TestCase):
 
-        parser.print_state(states, trans_map)
+    def test5(self):
+        parser = SLR1Parser('g5.bnf')
+        parser.canonical_collection()
         action_table, goto_table = parser.build_parse_table()
 
-    def test2(self):
-        parser = LALR1Parser('g7.bnf')
-        states, trans_map = parser.canonical_collection()
-
-        parser.print_state(states, trans_map)
-        action_table, goto_table = parser.build_parse_table()
+    def test6(self):
+        parser = SLR1Parser('g5.bnf')
+        parser.canonical_collection()
+        parser.build_parse_table()
         token_exprs = [
             (r'[ \n\t]+', None),
             (r'#[^\n]*', None),
@@ -30,7 +28,7 @@ class LALR1Test(unittest.TestCase):
             (r'\/', '/'),
             (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
         ]
-        text = "1+2*3"
+        text = "1+3*4"
         lexer = Lexer(text, token_exprs)
         inputs = []
         while lexer.has_next():
@@ -39,12 +37,11 @@ class LALR1Test(unittest.TestCase):
 
         parser.parse(inputs)
 
-    def test3(self):
-        parser = LALR1Parser('g5.bnf')
-        states, trans_map = parser.canonical_collection()
-
-        parser.print_state(states, trans_map)
+    def test7(self):
+        parser = SLR1Parser('g7.bnf')
+        parser.canonical_collection()
         action_table, goto_table = parser.build_parse_table()
+
         token_exprs = [
             (r'[ \n\t]+', None),
             (r'#[^\n]*', None),

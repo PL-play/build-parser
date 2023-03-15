@@ -77,9 +77,6 @@ class LRState:
 
 
 class LR0Parser:
-    """
-
-    """
 
     def __init__(self, bnf_file: str, eof: str = '$'):
         self.bnf_file = bnf_file
@@ -313,7 +310,7 @@ class LR0Parser:
         return None, None
 
     def lookahead_symbols(self, item: [Item0]):
-        return self.follow_set[item.lhs]
+        return list(self.terminals) + [self.eof]
 
     def build_parse_table(self) -> tuple[dict, dict]:
         """
@@ -481,7 +478,7 @@ class LR0Parser:
     def print_parsing_table(self, action_table: dict, goto_table: dict, states: list[LRState], grammar: dict):
         x = PrettyTable()
 
-        x.title = 'Parsing Table'
+        x.title = f'{self.__class__.__name__} Parsing Table'
         terminals = list(self.terminals)
         terminals.append(self.eof)
         non_terminals = list(self.non_terminals - {self.start_symbol})

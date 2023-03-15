@@ -1,6 +1,9 @@
 import unittest
 
+from LR.LALR1Parser import LALR1Parser
+from LR.LR0Parser import LR0Parser
 from LR.LR1Parser import LR1Parser
+from LR.SLR1Parser import SLR1Parser
 from util.Lexer import Lexer, Token
 
 
@@ -42,3 +45,15 @@ class LR1Test(unittest.TestCase):
         inputs.append(Token('$', '$'))
 
         parser.parse(inputs)
+
+    def test4(self):
+        bnf = 'g9.bnf'
+        parsers = [LR0Parser(bnf), SLR1Parser(bnf), LALR1Parser(bnf), LR1Parser(bnf)]
+        for p in parsers:
+            try:
+                p.canonical_collection()
+                print("================")
+                p.build_parse_table()
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
