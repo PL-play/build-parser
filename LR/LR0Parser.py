@@ -563,7 +563,7 @@ class LR0Parser:
                     "result": None,
                 }
                 for index, v in enumerate(values):
-                    params[f"p{index + 1}"] = v
+                    params[f"p{index + 1}"] = v.value if isinstance(v, Token) else v
                 exec(semantic_action, params)
                 value_stack.append(params.get("result"))
                 goto_state = self.parsing_table[(stack[-1][0], lhs)]
@@ -575,7 +575,7 @@ class LR0Parser:
             elif self.parsing_table[key][0] == 's':
                 goto_state = self.parsing_table[key][1]
                 stack.append((goto_state, word))
-                value_stack.append(word.value)
+                value_stack.append(word)
                 s = self.parsing_table[key]
                 step.append(f'{s[0]}{s[1]}: shift {word.type},goto {goto_state}')
                 steps.append(step)
