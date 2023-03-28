@@ -542,7 +542,9 @@ class LR0Parser:
             stage += 1
             stack_ = " ".join([str(s[0]) for s in stack])
             symbol_ = " ".join([s[1] if isinstance(s[1], str) else s[1].type for s in stack])
-            input_ = "".join([t.value for t in tokens[pos:]])
+            # show at most 15 tokens
+            input_ = "".join([t.value for t in tokens[pos:pos+15]])
+
             step = [stage, stack_, symbol_, input_]
             state = stack[-1]
             key = (state[0], word[0])

@@ -57,7 +57,7 @@ class LALR1Test(unittest.TestCase):
             (r'\/', '/'),
             (r'[a-zA-Z_][a-zA-Z0-9_]*', 'IDENTIFIER'),
         ]
-        text = "1+2*3"
+        text = "1+2*3+( 1 - 2)/3 - 5+6*4/7"
         lexer = Lexer(text, token_exprs)
         inputs = []
         while lexer.has_next():
