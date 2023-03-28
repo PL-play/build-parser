@@ -78,7 +78,8 @@ class LRState:
 
 class LR0Parser:
 
-    def __init__(self, bnf_file: str, eof: str = '$'):
+    def __init__(self, bnf_file: str, eof: str = '$', print_ast=True, show_parsing_table=True, show_graph_state=True,
+                 print_first_follow=True, show_parsing_steps=True):
         self.bnf_file = bnf_file
         self.bnf_builder = BnfBuilder(bnf_file)
         self.bnf_builder.build()
@@ -102,7 +103,13 @@ class LR0Parser:
         self.first_set = self.bnf_builder.first_set
         self.follow_set = self.bnf_builder.follow_set
         self.augment_grammar()
-        self.print_first_follow()
+        if print_first_follow:
+            self.print_first_follow()
+        self.ast = None
+        self.print_ast = print_ast
+        self.show_parsing_table = show_parsing_table
+        self.show_graph_state = show_graph_state
+        self.show_parsing_steps = show_parsing_steps
 
     def print_first_follow(self):
         x = PrettyTable()
@@ -388,9 +395,11 @@ class LR0Parser:
         self.action_table = action_table
         self.goto_table = goto_table
         self.resolve_ambiguity()
-        self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
+        if self.show_parsing_table:
+            self.print_parsing_table(action_table, goto_table, self.lr0_states, self.grammar)
         self.parsing_table = {**action_table, **goto_table}
-        self.graph_state(self.lr0_states, self.lr0_trans_function, self.action_table)
+        if self.show_graph_state:
+            self.graph_state(self.lr0_states, self.lr0_trans_function, self.action_table)
         for k in self.parsing_table:
             if isinstance(self.parsing_table[k], list):
                 raise AssertionError(f'parsing table conflict')
@@ -543,7 +552,7 @@ class LR0Parser:
             stack_ = " ".join([str(s[0]) for s in stack])
             symbol_ = " ".join([s[1] if isinstance(s[1], str) else s[1].type for s in stack])
             # show at most 15 tokens
-            input_ = "".join([t.value for t in tokens[pos:pos+15]])
+            input_ = "".join([t.value for t in tokens[pos:pos + 15]])
 
             step = [stage, stack_, symbol_, input_]
             state = stack[-1]
@@ -590,11 +599,15 @@ class LR0Parser:
             else:
                 raise AssertionError("Parse failed")
 
-        self.print_parsing_steps(steps)
-        print("AST:")
+        if self.show_parsing_steps:
+            self.print_parsing_steps(steps)
+
         opts = jsbeautifier.default_options()
         opts.indent_size = 2
-        print(jsbeautifier.beautify(json.dumps(value_stack.pop()), opts))
+        self.ast = value_stack.pop()
+        if self.print_ast:
+            print("AST:")
+            print(jsbeautifier.beautify(json.dumps(self.ast), opts))
 
     def print_parsing_steps(self, steps: list):
         x = PrettyTable()
