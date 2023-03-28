@@ -602,11 +602,11 @@ class LR0Parser:
         if self.show_parsing_steps:
             self.print_parsing_steps(steps)
 
-        opts = jsbeautifier.default_options()
-        opts.indent_size = 2
         self.ast = value_stack.pop()
         if self.print_ast:
             print("AST:")
+            opts = jsbeautifier.default_options()
+            opts.indent_size = 2
             print(jsbeautifier.beautify(json.dumps(self.ast), opts))
 
     def print_parsing_steps(self, steps: list):
